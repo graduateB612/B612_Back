@@ -1,16 +1,14 @@
 package com.b612.rose.entity.domain;
 
+import com.b612.rose.entity.enums.GameStage;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Data
+@Getter
 @Table
 @Builder
 @NoArgsConstructor
@@ -20,11 +18,12 @@ public class GameProgress {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer progressId;
 
-    @Column(nullable = false)
+    @Column(name = "user_id", nullable = false)
     private UUID userId;
 
     @Column(nullable = false)
-    private String currentStage;
+    @Enumerated(EnumType.STRING)
+    private GameStage currentStage;
 
     private LocalDateTime updatedAt;
 
@@ -35,6 +34,6 @@ public class GameProgress {
     }
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(referencedColumnName = "user_id", insertable = false, updatable = false)
+    @JoinColumn(name = "user_id", referencedColumnName = "user_id", insertable = false, updatable = false)
     private User user;
 }

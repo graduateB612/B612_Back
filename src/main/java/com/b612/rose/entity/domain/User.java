@@ -2,16 +2,12 @@ package com.b612.rose.entity.domain;
 
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Data
+@Getter
 @Table(name = "users")
 @Builder
 @NoArgsConstructor
@@ -28,7 +24,5 @@ public class User {
     private String email;
     private String concern;
     private String selectedNpc;
-    private LocalDateTime sessionStartTime;
-    private LocalDateTime sessionEndTime;
     private boolean isCompleted;
 }

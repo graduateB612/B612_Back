@@ -3,13 +3,10 @@ package com.b612.rose.entity.domain;
 import com.b612.rose.entity.enums.PurifiedType;
 import com.b612.rose.entity.enums.StarType;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
-@Data
+@Getter
 @Table
 @Builder
 @NoArgsConstructor

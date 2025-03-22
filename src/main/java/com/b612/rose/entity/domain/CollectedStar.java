@@ -1,15 +1,13 @@
 package com.b612.rose.entity.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
-@Data
+@Getter
 @Table
 @Builder
 @NoArgsConstructor
@@ -20,13 +18,11 @@ public class CollectedStar {
     @Column
     private Integer collectionId;
 
-    @ManyToOne
-    @JoinColumn(nullable = false)
-    private User user;
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
 
-    @ManyToOne
-    @JoinColumn(nullable = false)
-    private Star star;
+    @Column(name = "star_id", nullable = false)
+    private Integer starId;
 
     @Column(nullable = false)
     private boolean collected;
@@ -36,4 +32,12 @@ public class CollectedStar {
 
     private LocalDateTime collectedAt;
     private LocalDateTime deliveredAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", referencedColumnName = "user_id", insertable = false, updatable = false)
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "star_id", referencedColumnName = "star_id", insertable = false, updatable = false)
+    private Star star;
 }
