@@ -8,9 +8,9 @@ spring:
     activate:
       on-profile: local
   datasource:
-    url: jdbc:postgresql://localhost:5432/b612db_dev
-    username: postgres
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://ep-rough-night-a1q384qp.ap-southeast-1.pg.koyeb.app/b612db_dev
+    username: koyeb-adm
+    password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     defer-datasource-initialization: true
@@ -31,9 +31,9 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: ${DATABASE_URL}/b612db_dev
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://${DATABASE_HOST}/${DATABASE_NAME}
+    username: ${DATABASE_USER}
+    password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -58,9 +58,9 @@ spring:
     activate:
       on-profile: prod
   datasource:
-    url: ${DATABASE_URL}/b612db_prod
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://${DATABASE_HOST}/${DATABASE_NAME}
+    username: ${DATABASE_USER}
+    password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
