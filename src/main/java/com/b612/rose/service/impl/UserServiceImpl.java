@@ -12,7 +12,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,9 +24,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse createUser(UserCreateRequest requestDto) {
+    public UserResponse createUser(UserCreateRequest request) {
         User newUser = User.builder()
-                .userName(requestDto.getUserName())
+                .userName(request.getUserName())
                 .isCompleted(false)
                 .build();
 

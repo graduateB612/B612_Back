@@ -1,7 +1,9 @@
 package com.b612.rose.controller;
 
 import com.b612.rose.dto.request.GameStageUpdateRequest;
+import com.b612.rose.dto.request.StarActionRequest;
 import com.b612.rose.dto.response.GameProgressResponse;
+import com.b612.rose.dto.response.GameStateResponse;
 import com.b612.rose.entity.enums.GameStage;
 import com.b612.rose.service.service.GameProgressService;
 import lombok.RequiredArgsConstructor;
@@ -18,27 +20,39 @@ public class GameProgressController {
     private final GameProgressService gameProgressService;
 
     @PostMapping("/{userId}/start-game")
-    public ResponseEntity<GameProgressResponse> startGame(@PathVariable UUID userId) {
+    public ResponseEntity<GameStateResponse> startGame(@PathVariable UUID userId) {
         GameStageUpdateRequest request = new GameStageUpdateRequest(GameStage.GAME_START);
-        GameProgressResponse response = gameProgressService.updateGameStage(userId, request);
+        GameStateResponse response = gameProgressService.updateGameStage(userId, request);
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<GameProgressResponse> updateGameStage(
+    public ResponseEntity<GameStateResponse> updateGameStage(
             @PathVariable UUID userId,
             @RequestBody GameStageUpdateRequest requestDto) {
-        GameProgressResponse response = gameProgressService.updateGameStage(userId, requestDto);
+        GameStateResponse response = gameProgressService.updateGameStage(userId, requestDto);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{userId}/collect")
+    public ResponseEntity<GameStateResponse> collectStar(
+            @PathVariable UUID userId,
+            @RequestBody StarActionRequest request) {
+        GameStateResponse response = gameProgressService.onStarCollected(userId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{userId}/deliver")
+    public ResponseEntity<GameStateResponse> deliverStar(
+            @PathVariable UUID userId,
+            @RequestBody StarActionRequest request) {
+        GameStateResponse response = gameProgressService.onStarDelivered(userId, request);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<GameProgressResponse> getCurrentProgress(@PathVariable UUID userId) {
-        GameProgressResponse response = GameProgressResponse.builder()
-                .userId(userId)
-                .currentStage(gameProgressService.getCurrentStage(userId))
-                .build();
-
+    public ResponseEntity<GameStateResponse> getCurrentGameState(@PathVariable UUID userId) {
+        GameStateResponse response = gameProgressService.getCurrentGameState(userId);
         return ResponseEntity.ok(response);
     }
 }

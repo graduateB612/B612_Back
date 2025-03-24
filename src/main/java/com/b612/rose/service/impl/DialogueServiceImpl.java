@@ -7,7 +7,6 @@ import com.b612.rose.entity.enums.GameStage;
 import com.b612.rose.repository.DialogueRepository;
 import com.b612.rose.repository.UserRepository;
 import com.b612.rose.service.service.DialogueService;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
