@@ -79,10 +79,10 @@ public class GameProgressServiceImpl implements GameProgressService {
     @Override
     @Transactional
     public GameStateResponse onStarCollected(UUID userId, StarActionRequest request) {
-        Star star = starRepository.findById(request.getStarId())
-                .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + request.getStarId()));
+        Star star = starRepository.findByStarType(request.getStarType())
+                .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + request.getStarType()));
 
-        gameStateManager.markStarAsCollected(userId, request.getStarId());
+        gameStateManager.markStarAsCollected(userId, request.getStarType());
 
         GameStage newStage = gameStateManager.getCollectStageForStar(star.getStarType());
         return updateGameStage(userId, new GameStageUpdateRequest(newStage));
@@ -91,10 +91,10 @@ public class GameProgressServiceImpl implements GameProgressService {
     @Override
     @Transactional
     public GameStateResponse onStarDelivered(UUID userId, StarActionRequest request) {
-        Star star = starRepository.findById(request.getStarId())
-                .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + request.getStarId()));
+        Star star = starRepository.findByStarType(request.getStarType())
+                .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + request.getStarType()));
 
-        gameStateManager.markStarAsDelivered(userId, request.getStarId());
+        gameStateManager.markStarAsDelivered(userId, request.getStarType());
 
         GameStage newStage = gameStateManager.getDeliverStageForStar(star.getStarType());
         return updateGameStage(userId, new GameStageUpdateRequest(newStage));

@@ -1,5 +1,6 @@
 package com.b612.rose.dto.request;
 
+import com.b612.rose.entity.enums.StarType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,5 +11,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StarActionRequest {
-    private Integer starId;
+    private StarType starType;
 }

@@ -14,5 +14,4 @@ public enum StarType {
     StarType(String description) {
         this.description = description;
     }
-
 }

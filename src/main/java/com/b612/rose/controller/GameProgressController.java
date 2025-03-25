@@ -29,8 +29,8 @@ public class GameProgressController {
     @PutMapping("/{userId}")
     public ResponseEntity<GameStateResponse> updateGameStage(
             @PathVariable UUID userId,
-            @RequestBody GameStageUpdateRequest requestDto) {
-        GameStateResponse response = gameProgressService.updateGameStage(userId, requestDto);
+            @RequestBody GameStageUpdateRequest request) {
+        GameStateResponse response = gameProgressService.updateGameStage(userId, request);
         return ResponseEntity.ok(response);
     }
 

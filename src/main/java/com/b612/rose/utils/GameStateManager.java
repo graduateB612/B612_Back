@@ -62,9 +62,9 @@ public class GameStateManager {
     }
 
     @Transactional
-    public void markStarAsCollected(UUID userId, Integer starId) {
-        Star star = starRepository.findById(starId)
-                .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + starId));
+    public void markStarAsCollected(UUID userId, StarType starType) {
+        Star star = starRepository.findByStarType(starType)
+                .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + starType));
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
@@ -86,9 +86,9 @@ public class GameStateManager {
     }
 
     @Transactional
-    public void markStarAsDelivered(UUID userId, Integer starId) {
-        Star star = starRepository.findById(starId)
-                .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + starId));
+    public void markStarAsDelivered(UUID userId, StarType starType) {
+        Star star = starRepository.findByStarType(starType)
+                .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + starType));
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
