@@ -41,6 +41,7 @@ public class UserServiceImpl implements UserService {
         return UserResponse.builder()
                 .id(savedUser.getUserId())
                 .userName(savedUser.getUserName())
+                .currentStage(GameStage.INTRO)
                 .build();
     }
 
@@ -64,7 +65,7 @@ public class UserServiceImpl implements UserService {
     private UserResponse convertToResponse(User user) {
         GameStage currentStage = gameProgressRepository.findByUserId(user.getUserId())
                 .map(GameProgress::getCurrentStage)
-                .orElse(null);
+                .orElse(GameStage.INTRO);
 
         return UserResponse.builder()
                 .id(user.getUserId())

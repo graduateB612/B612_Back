@@ -10,6 +10,6 @@ import java.util.UUID;
 
 @Repository
 public interface CollectedStarRepository extends JpaRepository<CollectedStar, Integer> {
-    Optional<CollectedStar> findByStarStarType(StarType starType);
     Optional<CollectedStar> findByUserUserIdAndStarStarType(UUID userId, StarType starType);
+    Optional<CollectedStar> findByUserIdAndStarStarType(UUID userId, StarType starType);
 }

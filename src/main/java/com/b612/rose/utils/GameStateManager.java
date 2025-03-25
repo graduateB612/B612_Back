@@ -26,15 +26,16 @@ public class GameStateManager {
 
     @Transactional
     public void handleGameStart(UUID userId) {
-        User user = userRepository.findById(userId)
+        // 사용자 존재 여부 확인
+        userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
         List<Star> allStars = starRepository.findAll();
 
         for (Star star : allStars) {
             CollectedStar collectedStar = CollectedStar.builder()
-                    .user(user)
-                    .star(star)
+                    .userId(userId)
+                    .starId(star.getStarId())
                     .collected(false)
                     .delivered(false)
                     .build();
@@ -64,18 +65,15 @@ public class GameStateManager {
     @Transactional
     public void markStarAsCollected(UUID userId, StarType starType) {
         Star star = starRepository.findByStarType(starType)
-                .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + starType));
+                .orElseThrow(() -> new IllegalArgumentException("Star not found with type: " + starType));
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
-
-        CollectedStar oldCollectedStar = collectedStarRepository.findByUserUserIdAndStarStarType(userId, star.getStarType())
-                .orElseThrow(() -> new IllegalArgumentException("Collected star not found for user: " + userId + " and type: " + star.getStarType()));
+        CollectedStar oldCollectedStar = collectedStarRepository.findByUserIdAndStarStarType(userId, starType)
+                .orElseThrow(() -> new IllegalArgumentException("Collected star not found for user: " + userId + " and type: " + starType));
 
         CollectedStar updatedCollectedStar = CollectedStar.builder()
                 .collectionId(oldCollectedStar.getCollectionId())
-                .user(oldCollectedStar.getUser())
-                .star(oldCollectedStar.getStar())
+                .userId(userId)
+                .starId(star.getStarId())
                 .collected(true)
                 .delivered(oldCollectedStar.isDelivered())
                 .collectedAt(LocalDateTime.now())
@@ -88,18 +86,15 @@ public class GameStateManager {
     @Transactional
     public void markStarAsDelivered(UUID userId, StarType starType) {
         Star star = starRepository.findByStarType(starType)
-                .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + starType));
+                .orElseThrow(() -> new IllegalArgumentException("Star not found with type: " + starType));
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
-
-        CollectedStar oldCollectedStar = collectedStarRepository.findByUserUserIdAndStarStarType(userId, star.getStarType())
-                .orElseThrow(() -> new IllegalArgumentException("Collected star not found for user: " + userId + " and type: " + star.getStarType()));
+        CollectedStar oldCollectedStar = collectedStarRepository.findByUserIdAndStarStarType(userId, starType)
+                .orElseThrow(() -> new IllegalArgumentException("Collected star not found for user: " + userId + " and type: " + starType));
 
         CollectedStar updatedCollectedStar = CollectedStar.builder()
                 .collectionId(oldCollectedStar.getCollectionId())
-                .user(oldCollectedStar.getUser())
-                .star(oldCollectedStar.getStar())
+                .userId(userId)
+                .starId(star.getStarId())
                 .collected(oldCollectedStar.isCollected())
                 .delivered(true)
                 .collectedAt(oldCollectedStar.getCollectedAt())
