@@ -8,6 +8,7 @@ import com.b612.rose.dto.response.GameStateResponse;
 import com.b612.rose.entity.domain.GameProgress;
 import com.b612.rose.entity.domain.Star;
 import com.b612.rose.entity.enums.GameStage;
+import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.repository.GameProgressRepository;
 import com.b612.rose.repository.StarRepository;
 import com.b612.rose.repository.UserRepository;
@@ -83,6 +84,10 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + request.getStarType()));
 
         gameStateManager.markStarAsCollected(userId, request.getStarType());
+        
+        if (request.getStarType() == StarType.PRIDE) {
+            gameStateManager.markStarAsDelivered(userId, request.getStarType());
+        }
 
         GameStage newStage = gameStateManager.getCollectStageForStar(star.getStarType());
         return updateGameStage(userId, new GameStageUpdateRequest(newStage));

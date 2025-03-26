@@ -6,8 +6,7 @@ import lombok.Getter;
 public enum GameStage {
     INTRO("첫 화면"),
     GAME_START("게임 화면 진입"),
-    COLLECT_PRIDE("첫번째 별 수집 완료"),
-    DELIVER_PRIDE("첫번째 별 전달 완료"),
+    COLLECT_PRIDE("첫번째 별 수집 및 전달 완료"),
     COLLECT_ENVY("두번째 별 수집 완료"),
     DELIVER_ENVY("두번째 별 전달 완료"),
     COLLECT_LONELY("세번째 별 수집 완료"),

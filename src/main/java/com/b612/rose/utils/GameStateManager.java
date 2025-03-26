@@ -26,7 +26,6 @@ public class GameStateManager {
 
     @Transactional
     public void handleGameStart(UUID userId) {
-        // 사용자 존재 여부 확인
         userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
@@ -54,8 +53,13 @@ public class GameStateManager {
     }
 
     public GameStage getDeliverStageForStar(StarType starType) {
+        // PRIDE 별은 DELIVER 단계가 없으므로, 다음 단계인 COLLECT_ENVY로 진행
+        if (starType == StarType.PRIDE) {
+            return GameStage.COLLECT_ENVY; // PRIDE가 수집된 후 다음 단계로 이동
+        }
+
         return switch (starType) {
-            case PRIDE -> GameStage.DELIVER_PRIDE;
+            case PRIDE -> GameStage.COLLECT_ENVY; // DELIVER_PRIDE 단계는 없음
             case ENVY -> GameStage.DELIVER_ENVY;
             case LONELY -> GameStage.DELIVER_LONELY;
             case SAD -> GameStage.DELIVER_SAD;
