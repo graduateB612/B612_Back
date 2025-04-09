@@ -138,11 +138,13 @@ public class GameProgressServiceImpl implements GameProgressService {
         if (!gameStateManager.areAllStarsCollectedAndDelivered(userId)) {
             throw new IllegalStateException("모든 별이 수집 및 전달되지 않았습니다");
         }
-        boolean isEmailSent = emailService.sendEmail(userId);
+
+        boolean isEmailSent = emailService.sendEmail(userId, request);
 
         if (!isEmailSent) {
             throw new RuntimeException("이메일 전송에 실패했습니다");
         }
+
         gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
 
         return getCurrentGameState(userId);

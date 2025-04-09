@@ -1,5 +1,6 @@
 package com.b612.rose.service.impl;
 
+import com.b612.rose.dto.request.EmailRequest;
 import com.b612.rose.entity.domain.EmailLog;
 import com.b612.rose.entity.domain.Star;
 import com.b612.rose.entity.domain.User;
@@ -32,19 +33,11 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     @Transactional
-    public boolean sendEmail(UUID userId) {
+    public boolean sendEmail(UUID userId, EmailRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
-        if (user.getEmail() == null || user.getEmail().isEmpty()) {
-            throw new IllegalArgumentException("User email is required");
-        }
-
-        if (user.getSelectedNpc() == null || user.getSelectedNpc().isEmpty()) {
-            throw new IllegalArgumentException("Selected NPC is required");
-        }
-
-        String npcName = user.getSelectedNpc();
+        String npcName = request.getSelectedNpc();
         String senderEmail = emailTemplateManager.getSenderEmail(npcName);
 
         StarType starType = emailTemplateManager.getStarTypeForNpc(npcName);
@@ -60,7 +53,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
             helper.setFrom(senderEmail);
-            helper.setTo(user.getEmail());
+            helper.setTo(request.getEmail());
             helper.setSubject(subject);
             helper.setText(content, true);
 
@@ -68,7 +61,7 @@ public class EmailServiceImpl implements EmailService {
 
             EmailLog emailLog = EmailLog.builder()
                     .userId(userId)
-                    .recipientEmail(user.getEmail())
+                    .recipientEmail(request.getEmail())
                     .subject(subject)
                     .content(content)
                     .sentAt(LocalDateTime.now())
@@ -82,7 +75,7 @@ public class EmailServiceImpl implements EmailService {
         } catch (MessagingException e) {
             EmailLog failedLog = EmailLog.builder()
                     .userId(userId)
-                    .recipientEmail(user.getEmail())
+                    .recipientEmail(request.getEmail())
                     .subject(subject)
                     .content(content)
                     .sentAt(LocalDateTime.now())
