@@ -1,5 +1,6 @@
 package com.b612.rose.service.impl;
 
+import com.b612.rose.dto.request.EmailRequest;
 import com.b612.rose.dto.request.GameStageUpdateRequest;
 import com.b612.rose.dto.request.StarActionRequest;
 import com.b612.rose.dto.response.DialogueResponse;
@@ -13,6 +14,7 @@ import com.b612.rose.repository.GameProgressRepository;
 import com.b612.rose.repository.StarRepository;
 import com.b612.rose.repository.UserRepository;
 import com.b612.rose.service.service.DialogueService;
+import com.b612.rose.service.service.EmailService;
 import com.b612.rose.service.service.GameProgressService;
 import com.b612.rose.utils.GameStateManager;
 import jakarta.transaction.Transactional;
@@ -31,6 +33,7 @@ public class GameProgressServiceImpl implements GameProgressService {
     private final StarRepository starRepository;
     private final DialogueService dialogueService;
     private final GameStateManager gameStateManager;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -127,6 +130,24 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .currentStage(currentStage)
                 .dialogues(dialogues)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public GameStateResponse completeGameAndSendEmail(UUID userId, EmailRequest request) {
+        if (!gameStateManager.areAllStarsCollectedAndDelivered(userId)) {
+            throw new IllegalStateException("모든 별이 수집 및 전달되지 않았습니다");
+        }
+
+        boolean isEmailSent = emailService.sendEmail(userId);
+
+        if (!isEmailSent) {
+            throw new RuntimeException("이메일 전송에 실패했습니다");
+        }
+
+        gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
+
+        return getCurrentGameState(userId);
     }
 
     private GameProgressResponse convertToResponse(GameProgress gameProgress) {

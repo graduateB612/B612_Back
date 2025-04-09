@@ -15,7 +15,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class EmailTemplateManager {
     private final StarRepository starRepository;
-
     private final Map<String, String> npcEmailMap = new HashMap<>();
     private final Map<String, StarType> npcStarTypeMap = new HashMap<>();
 
