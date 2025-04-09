@@ -14,6 +14,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
@@ -49,15 +51,19 @@ public class EmailServiceImpl implements EmailService {
         String content = emailTemplateManager.getEmailContent(user, npcName);
 
         try {
+            log.info("이메일 전송 시도: {} -> {}, 제목: {}", senderEmail, request.getEmail(), subject);
+
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setFrom(senderEmail);
+            helper.setReplyTo(senderEmail);
             helper.setTo(request.getEmail());
             helper.setSubject(subject);
             helper.setText(content, true);
 
             mailSender.send(message);
+            log.info("이메일 전송 성공: {}", request.getEmail());
 
             EmailLog emailLog = EmailLog.builder()
                     .userId(userId)
@@ -73,9 +79,21 @@ public class EmailServiceImpl implements EmailService {
             return true;
 
         } catch (MessagingException e) {
+            log.error("이메일 전송 실패 (MessagingException): {}", e.getMessage(), e);
+            saveFailedEmailLog(userId, request.getEmail(), subject, content);
+            return false;
+        } catch (Exception e) {
+            log.error("이메일 전송 실패 (일반 예외): {}", e.getMessage(), e);
+            saveFailedEmailLog(userId, request.getEmail(), subject, content);
+            return false;
+        }
+    }
+
+    private void saveFailedEmailLog(UUID userId, String email, String subject, String content) {
+        try {
             EmailLog failedLog = EmailLog.builder()
                     .userId(userId)
-                    .recipientEmail(request.getEmail())
+                    .recipientEmail(email)
                     .subject(subject)
                     .content(content)
                     .sentAt(LocalDateTime.now())
@@ -83,8 +101,8 @@ public class EmailServiceImpl implements EmailService {
                     .build();
 
             emailLogRepository.save(failedLog);
-
-            return false;
+        } catch (Exception e) {
+            log.error("이메일 로그 저장 실패: {}", e.getMessage(), e);
         }
     }
 }
