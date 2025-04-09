@@ -5,7 +5,6 @@ import com.b612.rose.dto.response.EmailResponse;
 import com.b612.rose.dto.response.GameStateResponse;
 import com.b612.rose.service.service.EmailService;
 import com.b612.rose.service.service.GameProgressService;
-import com.b612.rose.utils.GameStateManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
