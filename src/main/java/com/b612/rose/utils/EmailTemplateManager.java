@@ -3,14 +3,19 @@ package com.b612.rose.utils;
 import com.b612.rose.entity.domain.Star;
 import com.b612.rose.entity.domain.User;
 import com.b612.rose.entity.enums.StarType;
+import com.b612.rose.repository.StarRepository;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Component
+@RequiredArgsConstructor
 public class EmailTemplateManager {
+    private final StarRepository starRepository;
+
     private final Map<String, String> npcEmailMap = new HashMap<>();
     private final Map<String, StarType> npcStarTypeMap = new HashMap<>();
 
@@ -39,7 +44,11 @@ public class EmailTemplateManager {
         return npcName + "이 보낸 선물 - " + purifiedTypeName + "의 별";
     }
 
-    public String getEmailContent(User user, String npcName, Star star) {
+    public String getEmailContent(User user, String npcName) {
+        StarType starType = getStarTypeForNpc(npcName);
+        Star star = starRepository.findByStarType(starType)
+                .orElseThrow(() -> new IllegalArgumentException("Star not found for type: " + starType));
+
         String purifiedTypeName = star.getPurifiedType().getDescription();
 
         String content = "<div style='font-family: Arial, sans-serif;'>" +
