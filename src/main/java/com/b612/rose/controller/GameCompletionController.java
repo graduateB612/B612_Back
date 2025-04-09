@@ -23,13 +23,7 @@ public class GameCompletionController {
     public ResponseEntity<GameStateResponse> completeGameAndSendEmail(
             @PathVariable UUID userId,
             @RequestBody EmailRequest request) {
-        try {
-            GameStateResponse response = gameProgressService.completeGameAndSendEmail(userId, request);
-            return ResponseEntity.ok(response);
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        GameStateResponse response = gameProgressService.completeGameAndSendEmail(userId, request);
+        return ResponseEntity.ok(response);
     }
 }
