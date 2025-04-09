@@ -2,7 +2,6 @@ package com.b612.rose.utils;
 
 import com.b612.rose.entity.domain.CollectedStar;
 import com.b612.rose.entity.domain.Star;
-import com.b612.rose.entity.domain.User;
 import com.b612.rose.entity.enums.GameStage;
 import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.repository.CollectedStarRepository;
@@ -53,13 +52,12 @@ public class GameStateManager {
     }
 
     public GameStage getDeliverStageForStar(StarType starType) {
-        // PRIDE 별은 DELIVER 단계가 없으므로, 다음 단계인 COLLECT_ENVY로 진행
         if (starType == StarType.PRIDE) {
-            return GameStage.COLLECT_ENVY; // PRIDE가 수집된 후 다음 단계로 이동
+            return GameStage.COLLECT_ENVY;
         }
 
         return switch (starType) {
-            case PRIDE -> GameStage.COLLECT_ENVY; // DELIVER_PRIDE 단계는 없음
+            case PRIDE -> GameStage.COLLECT_ENVY;
             case ENVY -> GameStage.DELIVER_ENVY;
             case LONELY -> GameStage.DELIVER_LONELY;
             case SAD -> GameStage.DELIVER_SAD;

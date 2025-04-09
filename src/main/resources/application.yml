@@ -8,8 +8,8 @@ spring:
     activate:
       on-profile: local
   datasource:
-    url: ${DATABASE_URL}
-    username: koyeb-adm
+    url: jdbc:postgresql://${DATABASE_HOST}/${DATABASE_NAME}
+    username: ${DATABASE_USER}
     password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
