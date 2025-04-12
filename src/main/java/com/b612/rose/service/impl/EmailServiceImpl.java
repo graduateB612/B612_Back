@@ -15,6 +15,8 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -61,6 +63,10 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(request.getEmail());
             helper.setSubject(subject);
             helper.setText(content, true);
+
+            String imagePath = emailTemplateManager.getStarImagePath(npcName);
+            Resource imageResource = new ClassPathResource(imagePath);
+            helper.addInline("starImage", imageResource);
 
             mailSender.send(message);
             log.info("이메일 전송 성공: {}", request.getEmail());

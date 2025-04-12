@@ -6,8 +6,14 @@ import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.repository.StarRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,8 +21,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class EmailTemplateManager {
     private final StarRepository starRepository;
+    private final ResourceLoader resourceLoader;
+
     private final Map<String, String> npcEmailMap = new HashMap<>();
     private final Map<String, StarType> npcStarTypeMap = new HashMap<>();
+    private final Map<String, String> npcTemplatePathMap = new HashMap<>();
+    private final Map<String, String> npcImagePathMap = new HashMap<>();
 
     @PostConstruct
     public void init() {
@@ -29,6 +39,16 @@ public class EmailTemplateManager {
         npcStarTypeMap.put("장미", StarType.ENVY);
         npcStarTypeMap.put("여우", StarType.SAD);
         npcStarTypeMap.put("바오밥", StarType.LONELY);
+
+        npcTemplatePathMap.put("어린왕자", "classpath:templates/emails/little-prince-email.html");
+        npcTemplatePathMap.put("장미", "classpath:templates/emails/rose-email.html");
+        npcTemplatePathMap.put("여우", "classpath:templates/emails/fox-email.html");
+        npcTemplatePathMap.put("바오밥", "classpath:templates/emails/baobab-email.html");
+
+        npcImagePathMap.put("어린왕자", "static/images/stars/purity-star.png");
+        npcImagePathMap.put("장미", "static/images/stars/love-star.png");
+        npcImagePathMap.put("여우", "static/images/stars/enlightenment-star.png");
+        npcImagePathMap.put("바오밥", "static/images/stars/patience-star.png");
     }
 
     public String getSenderEmail(String npcName) {
@@ -43,18 +63,38 @@ public class EmailTemplateManager {
         return npcName + "의 선물 - " + purifiedTypeName + "의 별";
     }
 
+    public String getStarImagePath(String npcName) {
+        return npcImagePathMap.getOrDefault(npcName, "static/images/stars/default-star.png");
+    }
+
     public String getEmailContent(User user, String npcName) {
         StarType starType = getStarTypeForNpc(npcName);
         Star star = starRepository.findByStarType(starType)
                 .orElseThrow(() -> new IllegalArgumentException("Star not found for type: " + starType));
 
         String purifiedTypeName = star.getPurifiedType().getDescription();
+        String templatePath = npcTemplatePathMap.getOrDefault(npcName, "classpath:templates/emails/default-email.html");
 
-        String content = "<div style='font-family: Arial, sans-serif;'>" +
-                "<h2>안녕하세요, " + user.getUserName() + "님!</h2>" +
-                "<p>" + npcName + "의 힘으로 정화한 " + purifiedTypeName + "의 별입니다.</p>" +
-                "</div>";
+        try {
+            Resource resource = resourceLoader.getResource(templatePath);
+            String template = new String(Files.readAllBytes(Paths.get(resource.getURI())), StandardCharsets.UTF_8);
 
-        return content;
+            // 변수 치환
+            template = template.replace("{{userName}}", user.getUserName())
+                    .replace("{{purifiedType}}", purifiedTypeName);
+
+            // 고민 내용이 있는 경우에만 치환
+            if (user.getConcern() != null && !user.getConcern().isEmpty()) {
+                template = template.replace("{{concern}}", user.getConcern());
+            }
+
+            return template;
+        } catch (IOException e) {
+            // 예외 처리: 템플릿 로드 실패 시 기본 이메일 내용 반환
+            return "<div style='font-family: Arial, sans-serif;'>" +
+                    "<h2>안녕하세요, " + user.getUserName() + "님!</h2>" +
+                    "<p>" + npcName + "의 힘으로 정화한 " + purifiedTypeName + "의 별입니다.</p>" +
+                    "</div>";
+        }
     }
 }
