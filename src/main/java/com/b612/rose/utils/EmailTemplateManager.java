@@ -45,10 +45,10 @@ public class EmailTemplateManager {
         npcTemplatePathMap.put("여우", "classpath:templates/emails/fox-email.html");
         npcTemplatePathMap.put("바오밥", "classpath:templates/emails/baobab-email.html");
 
-        npcImagePathMap.put("어린왕자", "static/images/stars/purity-star.png");
-        npcImagePathMap.put("장미", "static/images/stars/love-star.png");
-        npcImagePathMap.put("여우", "static/images/stars/enlightenment-star.png");
-        npcImagePathMap.put("바오밥", "static/images/stars/patience-star.png");
+        npcImagePathMap.put("어린왕자", "static/images/stars/LittlePrinceStar.png");
+        npcImagePathMap.put("장미", "static/images/stars/RoseStar.png");
+        npcImagePathMap.put("여우", "static/images/stars/FoxStar.png");
+        npcImagePathMap.put("바오밥", "static/images/stars/BaobobStar.png");
     }
 
     public String getSenderEmail(String npcName) {
@@ -79,18 +79,15 @@ public class EmailTemplateManager {
             Resource resource = resourceLoader.getResource(templatePath);
             String template = new String(Files.readAllBytes(Paths.get(resource.getURI())), StandardCharsets.UTF_8);
 
-            // 변수 치환
             template = template.replace("{{userName}}", user.getUserName())
                     .replace("{{purifiedType}}", purifiedTypeName);
 
-            // 고민 내용이 있는 경우에만 치환
             if (user.getConcern() != null && !user.getConcern().isEmpty()) {
                 template = template.replace("{{concern}}", user.getConcern());
             }
 
             return template;
         } catch (IOException e) {
-            // 예외 처리: 템플릿 로드 실패 시 기본 이메일 내용 반환
             return "<div style='font-family: Arial, sans-serif;'>" +
                     "<h2>안녕하세요, " + user.getUserName() + "님!</h2>" +
                     "<p>" + npcName + "의 힘으로 정화한 " + purifiedTypeName + "의 별입니다.</p>" +
