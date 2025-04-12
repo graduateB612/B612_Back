@@ -1,11 +1,13 @@
 package com.b612.rose.utils;
 
 import com.b612.rose.entity.domain.CollectedStar;
+import com.b612.rose.entity.domain.GameProgress;
 import com.b612.rose.entity.domain.Star;
 import com.b612.rose.entity.domain.User;
 import com.b612.rose.entity.enums.GameStage;
 import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.repository.CollectedStarRepository;
+import com.b612.rose.repository.GameProgressRepository;
 import com.b612.rose.repository.StarRepository;
 import com.b612.rose.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -23,6 +25,7 @@ public class GameStateManager {
     private final StarRepository starRepository;
     private final UserRepository userRepository;
     private final CollectedStarRepository collectedStarRepository;
+    private final GameProgressRepository gameProgressRepository;
 
     @Transactional
     public void handleGameStart(UUID userId) {
@@ -53,13 +56,12 @@ public class GameStateManager {
     }
 
     public GameStage getDeliverStageForStar(StarType starType) {
-        // PRIDE 별은 DELIVER 단계가 없으므로, 다음 단계인 COLLECT_ENVY로 진행
         if (starType == StarType.PRIDE) {
-            return GameStage.COLLECT_ENVY; // PRIDE가 수집된 후 다음 단계로 이동
+            return GameStage.COLLECT_ENVY;
         }
 
         return switch (starType) {
-            case PRIDE -> GameStage.COLLECT_ENVY; // DELIVER_PRIDE 단계는 없음
+            case PRIDE -> GameStage.COLLECT_ENVY;
             case ENVY -> GameStage.DELIVER_ENVY;
             case LONELY -> GameStage.DELIVER_LONELY;
             case SAD -> GameStage.DELIVER_SAD;
@@ -106,5 +108,44 @@ public class GameStateManager {
                 .build();
 
         collectedStarRepository.save(updatedCollectedStar);
+    }
+
+    @Transactional
+    public void completeGame(UUID userId, String email, String concern, String selectedNpc) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+
+        User updatedUser = User.builder()
+                .userId(user.getUserId())
+                .userName(user.getUserName())
+                .email(email)
+                .concern(concern)
+                .selectedNpc(selectedNpc)
+                .isCompleted(true)
+                .build();
+
+        userRepository.save(updatedUser);
+
+        GameProgress progress = gameProgressRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Game progress not found for user: " + userId));
+
+        GameProgress updatedProgress = GameProgress.builder()
+                .progressId(progress.getProgressId())
+                .userId(userId)
+                .currentStage(GameStage.GAME_COMPLETE)
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        gameProgressRepository.save(updatedProgress);
+    }
+
+    public boolean areAllStarsCollectedAndDelivered(UUID userId) {
+        List<CollectedStar> stars = collectedStarRepository.findAllByUserId(userId);
+
+        if (stars.isEmpty()) {
+            return false;
+        }
+
+        return stars.stream().allMatch(star -> star.isCollected() && star.isDelivered());
     }
 }

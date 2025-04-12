@@ -1,5 +1,6 @@
 package com.b612.rose.service.impl;
 
+import com.b612.rose.dto.request.EmailRequest;
 import com.b612.rose.dto.request.GameStageUpdateRequest;
 import com.b612.rose.dto.request.StarActionRequest;
 import com.b612.rose.dto.response.DialogueResponse;
@@ -13,10 +14,12 @@ import com.b612.rose.repository.GameProgressRepository;
 import com.b612.rose.repository.StarRepository;
 import com.b612.rose.repository.UserRepository;
 import com.b612.rose.service.service.DialogueService;
+import com.b612.rose.service.service.EmailService;
 import com.b612.rose.service.service.GameProgressService;
 import com.b612.rose.utils.GameStateManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,6 +27,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GameProgressServiceImpl implements GameProgressService {
 
     private final GameProgressRepository gameProgressRepository;
@@ -31,6 +35,7 @@ public class GameProgressServiceImpl implements GameProgressService {
     private final StarRepository starRepository;
     private final DialogueService dialogueService;
     private final GameStateManager gameStateManager;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -127,6 +132,39 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .currentStage(currentStage)
                 .dialogues(dialogues)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public GameStateResponse completeGameAndSendEmail(UUID userId, EmailRequest request) {
+        if (!gameStateManager.areAllStarsCollectedAndDelivered(userId)) {
+            log.error("모든 별이 수집 및 전달되지 않았습니다. userId: {}", userId);
+            throw new IllegalStateException("모든 별이 수집 및 전달되지 않았습니다");
+        }
+
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            log.error("이메일 주소가 비어있습니다. userId: {}", userId);
+            throw new IllegalArgumentException("이메일 주소가 필요합니다");
+        }
+
+        if (request.getSelectedNpc() == null || request.getSelectedNpc().isBlank()) {
+            log.error("선택된 NPC가 없습니다. userId: {}", userId);
+            throw new IllegalArgumentException("NPC를 선택해야 합니다");
+        }
+
+        log.info("이메일 전송 시도. userId: {}, email: {}, selectedNpc: {}",
+                userId, request.getEmail(), request.getSelectedNpc());
+        boolean isEmailSent = emailService.sendEmail(userId, request);
+
+        if (!isEmailSent) {
+            log.error("이메일 전송에 실패했습니다. userId: {}, email: {}", userId, request.getEmail());
+            throw new RuntimeException("이메일 전송에 실패했습니다");
+        }
+
+        log.info("이메일 전송 성공, 게임 완료 처리. userId: {}", userId);
+        gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
+
+        return getCurrentGameState(userId);
     }
 
     private GameProgressResponse convertToResponse(GameProgress gameProgress) {
