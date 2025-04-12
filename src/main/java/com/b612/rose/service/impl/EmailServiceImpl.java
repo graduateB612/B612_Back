@@ -75,7 +75,6 @@ public class EmailServiceImpl implements EmailService {
                     .userId(userId)
                     .recipientEmail(request.getEmail())
                     .subject(subject)
-                    .content(content)
                     .sentAt(LocalDateTime.now())
                     .isDelivered(true)
                     .build();
