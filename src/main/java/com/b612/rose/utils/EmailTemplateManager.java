@@ -27,6 +27,7 @@ public class EmailTemplateManager {
     private final Map<String, StarType> npcStarTypeMap = new HashMap<>();
     private final Map<String, String> npcTemplatePathMap = new HashMap<>();
     private final Map<String, String> npcImagePathMap = new HashMap<>();
+    private final Map<String, String> npcCharacterImageMap = new HashMap<>();
 
     @PostConstruct
     public void init() {
@@ -49,6 +50,8 @@ public class EmailTemplateManager {
         npcImagePathMap.put("장미", "static/images/stars/RoseStar.png");
         npcImagePathMap.put("여우", "static/images/stars/FoxStar.png");
         npcImagePathMap.put("바오밥", "static/images/stars/BaobobStar.png");
+
+        npcCharacterImageMap.put("여우", "static/images/character/fox_character.png");
     }
 
     public String getSenderEmail(String npcName) {
@@ -65,6 +68,10 @@ public class EmailTemplateManager {
 
     public String getStarImagePath(String npcName) {
         return npcImagePathMap.getOrDefault(npcName, "static/images/stars/default-star.png");
+    }
+
+    public String getCharacterImagePath(String npcName) {
+        return npcCharacterImageMap.getOrDefault(npcName, "static/images/character/default-character.png");
     }
 
     public String getEmailContent(User user, String npcName) {

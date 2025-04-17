@@ -66,7 +66,10 @@ public class EmailServiceImpl implements EmailService {
 
             String imagePath = emailTemplateManager.getStarImagePath(npcName);
             Resource imageResource = new ClassPathResource(imagePath);
+            String characterPath = emailTemplateManager.getCharacterImagePath(npcName);
+            Resource characterResource = new ClassPathResource(characterPath);
             helper.addInline("starImage", imageResource);
+            helper.addInline("characterImage", characterResource);
 
             mailSender.send(message);
             log.info("이메일 전송 성공: {}", request.getEmail());
