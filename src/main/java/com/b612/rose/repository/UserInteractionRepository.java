@@ -11,6 +11,7 @@ import java.util.UUID;
 
 @Repository
 public interface UserInteractionRepository extends JpaRepository<UserInteraction, Integer> {
-    Optional<UserInteraction> findByUserIdAndInteractiveObjectObjectType(UUID userId, InteractiveObjectType object);
+    Optional<UserInteraction> findByUserIdAndObjectId(UUID userId, Integer objectId);
     List<UserInteraction> findAllByUserId(UUID userId);
 }
+

@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public interface InteractionService {
     List<ObjectStatusResponse> getObjectStatus(UUID userId);
-    StarGuideResponse interactWithStarGuide(UUID userId, int page);
-    CharacterProfileResponse interactWithCharacterProfile(UUID userId);
-    List<DialogueResponse> interactWithRequestForm(UUID userId);
+    StarGuideResponse getStarGuide(UUID userId, int page);
+    CharacterProfileResponse getCharacterProfile(UUID userId);
+    List<DialogueResponse> getRequestForm(UUID userId);
 }

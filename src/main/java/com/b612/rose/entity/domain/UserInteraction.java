@@ -27,6 +27,7 @@ public class UserInteraction {
     private Integer objectId;
 
     private boolean hasInteracted;
+    private boolean isActive;
 
     private LocalDateTime interactedAt;
 

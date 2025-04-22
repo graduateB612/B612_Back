@@ -28,18 +28,18 @@ public class InteractionServiceImpl implements InteractionService {
     public List<ObjectStatusResponse> getObjectStatus(UUID userId) {
         List<ObjectStatusResponse> responses = new ArrayList<>();
 
-        for (InteractiveObjectType type : InteractiveObjectType.values()) {
-            InteractiveObject object = interactiveObjectRepository.findByObjectType(type)
-                    .orElseThrow(() -> new IllegalArgumentException("Object not found with type: " + type));
+        List<InteractiveObject> objects = interactiveObjectRepository.findAll();
+        for (InteractiveObject object : objects) {
+            Optional<UserInteraction> interactionOpt = userInteractionRepository
+                    .findByUserIdAndObjectId(userId, object.getObjectId());
 
-            boolean hasInteracted = userInteractionRepository.findByUserIdAndInteractiveObjectObjectType(userId, type)
-                    .map(UserInteraction::isHasInteracted)
-                    .orElse(false);
+            boolean hasInteracted = interactionOpt.map(UserInteraction::isHasInteracted).orElse(false);
+            boolean isActive = interactionOpt.map(UserInteraction::isActive).orElse(false);
 
             responses.add(ObjectStatusResponse.builder()
-                    .objectType(type)
+                    .objectType(object.getObjectType())
                     .hasInteracted(hasInteracted)
-                    .isActive(object.isActive())
+                    .isActive(isActive)
                     .build());
         }
 
@@ -48,7 +48,7 @@ public class InteractionServiceImpl implements InteractionService {
 
     @Override
     @Transactional
-    public StarGuideResponse interactWithStarGuide(UUID userId, int page) {
+    public StarGuideResponse getStarGuide(UUID userId, int page) {
         updateInteraction(userId, InteractiveObjectType.STAR_GUIDE);
 
         List<DialogueResponse> dialogues = dialogueService.getDialoguesByType("star_guide", userId);
@@ -88,7 +88,7 @@ public class InteractionServiceImpl implements InteractionService {
 
     @Override
     @Transactional
-    public CharacterProfileResponse interactWithCharacterProfile(UUID userId) {
+    public CharacterProfileResponse getCharacterProfile(UUID userId) {
         updateInteraction(userId, InteractiveObjectType.CHARACTER_PROFILE);
         List<DialogueResponse> dialogues = dialogueService.getDialoguesByType("character_profile", userId);
 
@@ -116,14 +116,18 @@ public class InteractionServiceImpl implements InteractionService {
 
     @Override
     @Transactional
-    public List<DialogueResponse> interactWithRequestForm(UUID userId) {
+    public List<DialogueResponse> getRequestForm(UUID userId) {
         InteractiveObject requestFormObject = interactiveObjectRepository.findByObjectType(InteractiveObjectType.REQUEST_FORM)
                 .orElseThrow(() -> new IllegalArgumentException("Request form object not found"));
 
-        if (!requestFormObject.isActive()) {
+        Optional<UserInteraction> interactionOpt = userInteractionRepository
+                .findByUserIdAndObjectId(userId, requestFormObject.getObjectId());
+
+        boolean isActive = interactionOpt.map(UserInteraction::isActive).orElse(false);
+
+        if (!isActive) {
             return Collections.emptyList();
         }
-
 
         updateInteraction(userId, InteractiveObjectType.REQUEST_FORM);
         return Collections.emptyList();
@@ -134,7 +138,8 @@ public class InteractionServiceImpl implements InteractionService {
         InteractiveObject object = interactiveObjectRepository.findByObjectType(objectType)
                 .orElseThrow(() -> new IllegalArgumentException("Object not found with type: " + objectType));
 
-        UserInteraction interaction = userInteractionRepository.findByUserIdAndInteractiveObjectObjectType(userId, objectType)
+        UserInteraction interaction = userInteractionRepository
+                .findByUserIdAndObjectId(userId, object.getObjectId())
                 .orElse(null);
 
         if (interaction == null) {
@@ -142,6 +147,7 @@ public class InteractionServiceImpl implements InteractionService {
                     .userId(userId)
                     .objectId(object.getObjectId())
                     .hasInteracted(true)
+                    .isActive(true)
                     .interactedAt(LocalDateTime.now())
                     .build();
         } else {
@@ -150,6 +156,7 @@ public class InteractionServiceImpl implements InteractionService {
                     .userId(interaction.getUserId())
                     .objectId(interaction.getObjectId())
                     .hasInteracted(true)
+                    .isActive(interaction.isActive())
                     .interactedAt(LocalDateTime.now())
                     .build();
         }

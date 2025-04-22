@@ -26,24 +26,23 @@ public class InteractionController {
         return ResponseEntity.ok(responses);
     }
 
-    @PostMapping("/{userId}/star-guide")
-    public ResponseEntity<StarGuideResponse> interactWithStarGuide(
+    @GetMapping("/{userId}/star-guide")
+    public ResponseEntity<StarGuideResponse> getStarGuide(
             @PathVariable UUID userId,
-            @RequestBody(required = false) StarGuidePageRequest pageRequest) {
-        int page = pageRequest != null ? pageRequest.getPage() : 0;
-        StarGuideResponse response = interactionService.interactWithStarGuide(userId, page);
+            @RequestParam(required = false, defaultValue = "0") int page) {
+        StarGuideResponse response = interactionService.getStarGuide(userId, page);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{userId}/character-profile")
-    public ResponseEntity<CharacterProfileResponse> interactWithCharacterProfile(@PathVariable UUID userId) {
-        CharacterProfileResponse response = interactionService.interactWithCharacterProfile(userId);
+    @GetMapping("/{userId}/character-profile")
+    public ResponseEntity<CharacterProfileResponse> getCharacterProfile(@PathVariable UUID userId) {
+        CharacterProfileResponse response = interactionService.getCharacterProfile(userId);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{userId}/request-form")
-    public ResponseEntity<List<DialogueResponse>> interactWithRequestForm(@PathVariable UUID userId) {
-        List<DialogueResponse> response = interactionService.interactWithRequestForm(userId);
+    @GetMapping("/{userId}/request-form")
+    public ResponseEntity<List<DialogueResponse>> getRequestForm(@PathVariable UUID userId) {
+        List<DialogueResponse> response = interactionService.getRequestForm(userId);
         return ResponseEntity.ok(response);
     }
 }

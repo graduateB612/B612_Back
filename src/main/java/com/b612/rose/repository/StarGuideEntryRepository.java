@@ -10,3 +10,4 @@ import java.util.List;
 public interface StarGuideEntryRepository extends JpaRepository<StarGuideEntry, Integer> {
     List<StarGuideEntry> findAllByOrderByOrderIndexAsc();
 }
+

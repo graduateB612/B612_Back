@@ -24,6 +24,4 @@ public class InteractiveObject {
 
     @Column(length = 1000)
     private String description;
-
-    private boolean isActive;
 }

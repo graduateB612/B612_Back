@@ -9,13 +9,11 @@ import com.b612.rose.dto.response.GameStateResponse;
 import com.b612.rose.entity.domain.GameProgress;
 import com.b612.rose.entity.domain.InteractiveObject;
 import com.b612.rose.entity.domain.Star;
+import com.b612.rose.entity.domain.UserInteraction;
 import com.b612.rose.entity.enums.GameStage;
 import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.entity.enums.StarType;
-import com.b612.rose.repository.GameProgressRepository;
-import com.b612.rose.repository.InteractiveObjectRepository;
-import com.b612.rose.repository.StarRepository;
-import com.b612.rose.repository.UserRepository;
+import com.b612.rose.repository.*;
 import com.b612.rose.service.service.DialogueService;
 import com.b612.rose.service.service.EmailService;
 import com.b612.rose.service.service.GameProgressService;
@@ -40,6 +38,7 @@ public class GameProgressServiceImpl implements GameProgressService {
     private final GameStateManager gameStateManager;
     private final EmailService emailService;
     private InteractiveObjectRepository interactiveObjectRepository;
+    private UserInteractionRepository userInteractionRepository;
 
     @Override
     @Transactional
@@ -53,6 +52,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .build();
 
         GameProgress savedProgress = gameProgressRepository.save(newProgress);
+        initUserInteractions(userId);
 
         return convertToResponse(savedProgress);
     }
@@ -110,18 +110,35 @@ public class GameProgressServiceImpl implements GameProgressService {
 
         gameStateManager.markStarAsDelivered(userId, request.getStarType());
 
+        // 마지막 별(SAD)을 전달했다면 의뢰 작성 오브젝트 활성화
         if (request.getStarType() == StarType.SAD) {
-            InteractiveObject requestFormObject = interactiveObjectRepository.findByObjectType(InteractiveObjectType.REQUEST_FORM)
+            InteractiveObject requestFormObject = interactiveObjectRepository
+                    .findByObjectType(InteractiveObjectType.REQUEST_FORM)
                     .orElseThrow(() -> new IllegalArgumentException("Request form object not found"));
 
-            InteractiveObject updatedObject = InteractiveObject.builder()
-                    .objectId(requestFormObject.getObjectId())
-                    .objectType(requestFormObject.getObjectType())
-                    .description(requestFormObject.getDescription())
-                    .isActive(true)
-                    .build();
+            UserInteraction interaction = userInteractionRepository
+                    .findByUserIdAndObjectId(userId, requestFormObject.getObjectId())
+                    .orElse(null);
 
-            interactiveObjectRepository.save(updatedObject);
+            if (interaction == null) {
+                interaction = UserInteraction.builder()
+                        .userId(userId)
+                        .objectId(requestFormObject.getObjectId())
+                        .hasInteracted(false)
+                        .isActive(true)  // 활성화
+                        .build();
+            } else {
+                interaction = UserInteraction.builder()
+                        .interactionId(interaction.getInteractionId())
+                        .userId(interaction.getUserId())
+                        .objectId(interaction.getObjectId())
+                        .hasInteracted(interaction.isHasInteracted())
+                        .isActive(true)  // 활성화
+                        .interactedAt(interaction.getInteractedAt())
+                        .build();
+            }
+
+            userInteractionRepository.save(interaction);
         }
 
         GameStage newStage = gameStateManager.getDeliverStageForStar(star.getStarType());
@@ -190,5 +207,22 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .userId(gameProgress.getUserId())
                 .currentStage(gameProgress.getCurrentStage())
                 .build();
+    }
+
+    private void initUserInteractions(UUID userId) {
+        List<InteractiveObject> objects = interactiveObjectRepository.findAll();
+
+        for (InteractiveObject object : objects) {
+            boolean isActive = object.getObjectType() != InteractiveObjectType.REQUEST_FORM;
+
+            UserInteraction interaction = UserInteraction.builder()
+                    .userId(userId)
+                    .objectId(object.getObjectId())
+                    .hasInteracted(false)
+                    .isActive(isActive)
+                    .build();
+
+            userInteractionRepository.save(interaction);
+        }
     }
 }
