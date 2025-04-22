@@ -2,7 +2,6 @@ package com.b612.rose.controller;
 
 import com.b612.rose.dto.request.GameStageUpdateRequest;
 import com.b612.rose.dto.request.StarActionRequest;
-import com.b612.rose.dto.response.GameProgressResponse;
 import com.b612.rose.dto.response.GameStateResponse;
 import com.b612.rose.entity.enums.GameStage;
 import com.b612.rose.service.service.GameProgressService;

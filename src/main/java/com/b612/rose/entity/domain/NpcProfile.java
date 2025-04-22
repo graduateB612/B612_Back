@@ -1,6 +1,6 @@
 package com.b612.rose.entity.domain;
 
-import com.b612.rose.entity.enums.InteractiveObjectType;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,17 +13,18 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InteractiveObject {
+public class NpcProfile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "object_id")
-    private Integer objectId;
+    private Integer profileId;
 
-    @Enumerated(EnumType.STRING)
-    private InteractiveObjectType objectType;
+    @Column(name = "npc_id", nullable = false)
+    private Integer npcId;
 
     @Column(length = 1000)
     private String description;
 
-    private boolean isActive;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "npc_id", referencedColumnName = "npc_id", insertable = false, updatable = false)
+    private Npc npc;
 }

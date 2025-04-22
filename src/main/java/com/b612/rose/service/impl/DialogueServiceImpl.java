@@ -52,6 +52,18 @@ public class DialogueServiceImpl implements DialogueService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<DialogueResponse> getDialoguesByType(String dialogueType, UUID userId) {
+        List<Dialogue> dialogues = dialogueRepository.findByDialogueTypeOrderByNpcId(dialogueType);
+        if (dialogues.isEmpty()) {
+            throw new IllegalArgumentException("No dialogues found with type: " + dialogueType);
+        }
+
+        return dialogues.stream()
+                .map(dialogue -> formatDialogueResponse(dialogue, userId))
+                .collect(Collectors.toList());
+    }
+
     private String getDialogueTypeForStage(GameStage currentStage) {
         return switch (currentStage) {
             case GAME_START -> "tutorial";

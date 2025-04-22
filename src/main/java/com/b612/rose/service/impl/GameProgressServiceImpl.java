@@ -7,10 +7,13 @@ import com.b612.rose.dto.response.DialogueResponse;
 import com.b612.rose.dto.response.GameProgressResponse;
 import com.b612.rose.dto.response.GameStateResponse;
 import com.b612.rose.entity.domain.GameProgress;
+import com.b612.rose.entity.domain.InteractiveObject;
 import com.b612.rose.entity.domain.Star;
 import com.b612.rose.entity.enums.GameStage;
+import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.repository.GameProgressRepository;
+import com.b612.rose.repository.InteractiveObjectRepository;
 import com.b612.rose.repository.StarRepository;
 import com.b612.rose.repository.UserRepository;
 import com.b612.rose.service.service.DialogueService;
@@ -36,6 +39,7 @@ public class GameProgressServiceImpl implements GameProgressService {
     private final DialogueService dialogueService;
     private final GameStateManager gameStateManager;
     private final EmailService emailService;
+    private InteractiveObjectRepository interactiveObjectRepository;
 
     @Override
     @Transactional
@@ -105,6 +109,20 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + request.getStarType()));
 
         gameStateManager.markStarAsDelivered(userId, request.getStarType());
+
+        if (request.getStarType() == StarType.SAD) {
+            InteractiveObject requestFormObject = interactiveObjectRepository.findByObjectType(InteractiveObjectType.REQUEST_FORM)
+                    .orElseThrow(() -> new IllegalArgumentException("Request form object not found"));
+
+            InteractiveObject updatedObject = InteractiveObject.builder()
+                    .objectId(requestFormObject.getObjectId())
+                    .objectType(requestFormObject.getObjectType())
+                    .description(requestFormObject.getDescription())
+                    .isActive(true)
+                    .build();
+
+            interactiveObjectRepository.save(updatedObject);
+        }
 
         GameStage newStage = gameStateManager.getDeliverStageForStar(star.getStarType());
         return updateGameStage(userId, new GameStageUpdateRequest(newStage));

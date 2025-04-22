@@ -1,7 +1,7 @@
 package com.b612.rose.repository;
 
-import com.b612.rose.entity.domain.InteractiveObject;
 import com.b612.rose.entity.domain.UserInteraction;
+import com.b612.rose.entity.enums.InteractiveObjectType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,6 +11,6 @@ import java.util.UUID;
 
 @Repository
 public interface UserInteractionRepository extends JpaRepository<UserInteraction, Integer> {
-    Optional<UserInteraction> findByUserIdAndInteractiveObjectObjectType(UUID userId, InteractiveObject object);
+    Optional<UserInteraction> findByUserIdAndInteractiveObjectObjectType(UUID userId, InteractiveObjectType object);
     List<UserInteraction> findAllByUserId(UUID userId);
 }
