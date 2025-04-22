@@ -70,7 +70,7 @@ public class GameProgressServiceImpl implements GameProgressService {
         GameProgress savedProgress = gameProgressRepository.save(updatedProgress);
 
         if (newStage == GameStage.GAME_START) {
-            gameStateManager.handleGameStart(userId); // 플레이어의 별 수집 현황 초기화
+            gameStateManager.handleGameStart(userId);
         }
 
         List<DialogueResponse> dialogues = dialogueService.getDialoguesForCurrentStage(userId, newStage);
