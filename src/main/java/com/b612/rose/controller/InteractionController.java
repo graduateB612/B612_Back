@@ -29,8 +29,9 @@ public class InteractionController {
     @GetMapping("/{userId}/star-guide")
     public ResponseEntity<StarGuideResponse> getStarGuide(
             @PathVariable UUID userId,
-            @RequestParam(required = false, defaultValue = "0") int page) {
-        StarGuideResponse response = interactionService.getStarGuide(userId, page);
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "true") boolean includeDialogues) {
+        StarGuideResponse response = interactionService.getStarGuide(userId, page, includeDialogues);
         return ResponseEntity.ok(response);
     }
 

@@ -48,10 +48,12 @@ public class InteractionServiceImpl implements InteractionService {
 
     @Override
     @Transactional
-    public StarGuideResponse getStarGuide(UUID userId, int page) {
+    public StarGuideResponse getStarGuide(UUID userId, int page, boolean includeDialogues) {
         updateInteraction(userId, InteractiveObjectType.STAR_GUIDE);
 
-        List<DialogueResponse> dialogues = dialogueService.getDialoguesByType("star_guide", userId);
+        List<DialogueResponse> dialogues = includeDialogues ?
+                dialogueService.getDialoguesByType("star_guide", userId) :
+                Collections.emptyList();
 
         List<StarGuideEntry> allEntries = starGuideEntryRepository.findAllByOrderByOrderIndexAsc();
 
