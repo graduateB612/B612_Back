@@ -37,25 +37,7 @@ public class GameProgressServiceImpl implements GameProgressService {
     private final DialogueService dialogueService;
     private final GameStateManager gameStateManager;
     private final EmailService emailService;
-    private InteractiveObjectRepository interactiveObjectRepository;
-    private UserInteractionRepository userInteractionRepository;
 
-    @Override
-    @Transactional
-    public GameProgressResponse initGameProgress(UUID userId) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
-
-        GameProgress newProgress = GameProgress.builder()
-                .userId(userId)
-                .currentStage(GameStage.INTRO)
-                .build();
-
-        GameProgress savedProgress = gameProgressRepository.save(newProgress);
-        initUserInteractions(userId);
-
-        return convertToResponse(savedProgress);
-    }
 
     @Override
     @Transactional
@@ -109,37 +91,6 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + request.getStarType()));
 
         gameStateManager.markStarAsDelivered(userId, request.getStarType());
-
-        // 마지막 별(SAD)을 전달했다면 의뢰 작성 오브젝트 활성화
-        if (request.getStarType() == StarType.SAD) {
-            InteractiveObject requestFormObject = interactiveObjectRepository
-                    .findByObjectType(InteractiveObjectType.REQUEST_FORM)
-                    .orElseThrow(() -> new IllegalArgumentException("Request form object not found"));
-
-            UserInteraction interaction = userInteractionRepository
-                    .findByUserIdAndObjectId(userId, requestFormObject.getObjectId())
-                    .orElse(null);
-
-            if (interaction == null) {
-                interaction = UserInteraction.builder()
-                        .userId(userId)
-                        .objectId(requestFormObject.getObjectId())
-                        .hasInteracted(false)
-                        .isActive(true)  // 활성화
-                        .build();
-            } else {
-                interaction = UserInteraction.builder()
-                        .interactionId(interaction.getInteractionId())
-                        .userId(interaction.getUserId())
-                        .objectId(interaction.getObjectId())
-                        .hasInteracted(interaction.isHasInteracted())
-                        .isActive(true)  // 활성화
-                        .interactedAt(interaction.getInteractedAt())
-                        .build();
-            }
-
-            userInteractionRepository.save(interaction);
-        }
 
         GameStage newStage = gameStateManager.getDeliverStageForStar(star.getStarType());
         return updateGameStage(userId, new GameStageUpdateRequest(newStage));
@@ -200,29 +151,5 @@ public class GameProgressServiceImpl implements GameProgressService {
         gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
 
         return getCurrentGameState(userId);
-    }
-
-    private GameProgressResponse convertToResponse(GameProgress gameProgress) {
-        return GameProgressResponse.builder()
-                .userId(gameProgress.getUserId())
-                .currentStage(gameProgress.getCurrentStage())
-                .build();
-    }
-
-    private void initUserInteractions(UUID userId) {
-        List<InteractiveObject> objects = interactiveObjectRepository.findAll();
-
-        for (InteractiveObject object : objects) {
-            boolean isActive = object.getObjectType() != InteractiveObjectType.REQUEST_FORM;
-
-            UserInteraction interaction = UserInteraction.builder()
-                    .userId(userId)
-                    .objectId(object.getObjectId())
-                    .hasInteracted(false)
-                    .isActive(isActive)
-                    .build();
-
-            userInteractionRepository.save(interaction);
-        }
     }
 }

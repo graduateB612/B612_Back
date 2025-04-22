@@ -1,15 +1,10 @@
 package com.b612.rose.utils;
 
-import com.b612.rose.entity.domain.CollectedStar;
-import com.b612.rose.entity.domain.GameProgress;
-import com.b612.rose.entity.domain.Star;
-import com.b612.rose.entity.domain.User;
+import com.b612.rose.entity.domain.*;
 import com.b612.rose.entity.enums.GameStage;
+import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.entity.enums.StarType;
-import com.b612.rose.repository.CollectedStarRepository;
-import com.b612.rose.repository.GameProgressRepository;
-import com.b612.rose.repository.StarRepository;
-import com.b612.rose.repository.UserRepository;
+import com.b612.rose.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -26,6 +21,8 @@ public class GameStateManager {
     private final UserRepository userRepository;
     private final CollectedStarRepository collectedStarRepository;
     private final GameProgressRepository gameProgressRepository;
+    private final InteractiveObjectRepository interactiveObjectRepository;
+    private final UserInteractionRepository userInteractionRepository;
 
     @Transactional
     public void handleGameStart(UUID userId) {
@@ -44,6 +41,7 @@ public class GameStateManager {
 
             collectedStarRepository.save(collectedStar);
         }
+        initUserInteractions(userId);
     }
 
     public GameStage getCollectStageForStar(StarType starType) {
@@ -108,7 +106,43 @@ public class GameStateManager {
                 .build();
 
         collectedStarRepository.save(updatedCollectedStar);
+
+        if (starType == StarType.SAD) {
+            activateRequestForm(userId);
+        }
     }
+
+    @Transactional
+    protected void activateRequestForm(UUID userId) {
+        InteractiveObject requestFormObject = interactiveObjectRepository
+                .findByObjectType(InteractiveObjectType.REQUEST_FORM)
+                .orElseThrow(() -> new IllegalArgumentException("Request form object not found"));
+
+        UserInteraction interaction = userInteractionRepository
+                .findByUserIdAndObjectId(userId, requestFormObject.getObjectId())
+                .orElse(null);
+
+        if (interaction == null) {
+            interaction = UserInteraction.builder()
+                    .userId(userId)
+                    .objectId(requestFormObject.getObjectId())
+                    .hasInteracted(false)
+                    .isActive(true)  // 활성화
+                    .build();
+        } else {
+            interaction = UserInteraction.builder()
+                    .interactionId(interaction.getInteractionId())
+                    .userId(interaction.getUserId())
+                    .objectId(interaction.getObjectId())
+                    .hasInteracted(interaction.isHasInteracted())
+                    .isActive(true)
+                    .interactedAt(interaction.getInteractedAt())
+                    .build();
+        }
+
+        userInteractionRepository.save(interaction);
+    }
+
 
     @Transactional
     public void completeGame(UUID userId, String email, String concern, String selectedNpc) {
@@ -147,5 +181,22 @@ public class GameStateManager {
         }
 
         return stars.stream().allMatch(star -> star.isCollected() && star.isDelivered());
+    }
+
+    private void initUserInteractions(UUID userId) {
+        List<InteractiveObject> objects = interactiveObjectRepository.findAll();
+
+        for (InteractiveObject object : objects) {
+            boolean isActive = object.getObjectType() != InteractiveObjectType.REQUEST_FORM;
+
+            UserInteraction interaction = UserInteraction.builder()
+                    .userId(userId)
+                    .objectId(object.getObjectId())
+                    .hasInteracted(false)
+                    .isActive(isActive)
+                    .build();
+
+            userInteractionRepository.save(interaction);
+        }
     }
 }
