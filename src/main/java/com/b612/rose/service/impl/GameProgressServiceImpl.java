@@ -7,12 +7,13 @@ import com.b612.rose.dto.response.DialogueResponse;
 import com.b612.rose.dto.response.GameProgressResponse;
 import com.b612.rose.dto.response.GameStateResponse;
 import com.b612.rose.entity.domain.GameProgress;
+import com.b612.rose.entity.domain.InteractiveObject;
 import com.b612.rose.entity.domain.Star;
+import com.b612.rose.entity.domain.UserInteraction;
 import com.b612.rose.entity.enums.GameStage;
+import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.entity.enums.StarType;
-import com.b612.rose.repository.GameProgressRepository;
-import com.b612.rose.repository.StarRepository;
-import com.b612.rose.repository.UserRepository;
+import com.b612.rose.repository.*;
 import com.b612.rose.service.service.DialogueService;
 import com.b612.rose.service.service.EmailService;
 import com.b612.rose.service.service.GameProgressService;
@@ -37,21 +38,6 @@ public class GameProgressServiceImpl implements GameProgressService {
     private final GameStateManager gameStateManager;
     private final EmailService emailService;
 
-    @Override
-    @Transactional
-    public GameProgressResponse initGameProgress(UUID userId) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
-
-        GameProgress newProgress = GameProgress.builder()
-                .userId(userId)
-                .currentStage(GameStage.INTRO)
-                .build();
-
-        GameProgress savedProgress = gameProgressRepository.save(newProgress);
-
-        return convertToResponse(savedProgress);
-    }
 
     @Override
     @Transactional
@@ -70,7 +56,7 @@ public class GameProgressServiceImpl implements GameProgressService {
         GameProgress savedProgress = gameProgressRepository.save(updatedProgress);
 
         if (newStage == GameStage.GAME_START) {
-            gameStateManager.handleGameStart(userId); // 플레이어의 별 수집 현황 초기화
+            gameStateManager.handleGameStart(userId);
         }
 
         List<DialogueResponse> dialogues = dialogueService.getDialoguesForCurrentStage(userId, newStage);
@@ -165,12 +151,5 @@ public class GameProgressServiceImpl implements GameProgressService {
         gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
 
         return getCurrentGameState(userId);
-    }
-
-    private GameProgressResponse convertToResponse(GameProgress gameProgress) {
-        return GameProgressResponse.builder()
-                .userId(gameProgress.getUserId())
-                .currentStage(gameProgress.getCurrentStage())
-                .build();
     }
 }

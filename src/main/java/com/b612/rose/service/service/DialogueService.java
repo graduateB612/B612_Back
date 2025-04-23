@@ -10,4 +10,5 @@ public interface DialogueService {
     DialogueResponse getDialogueByType(String dialogueType, UUID userId);
     DialogueResponse getDialogueByTypeAndNpcId(String dialogueType, Integer npcId, UUID userId);
     List<DialogueResponse> getDialoguesForCurrentStage(UUID userId, GameStage currentStage);
+    List<DialogueResponse> getDialoguesByType(String dialogueType, UUID userId);
 }

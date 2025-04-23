@@ -10,7 +10,6 @@ import com.b612.rose.entity.enums.GameStage;
 import java.util.UUID;
 
 public interface GameProgressService {
-    GameProgressResponse initGameProgress(UUID userId);
     GameStateResponse updateGameStage(UUID userId, GameStageUpdateRequest requestDto);
     GameStateResponse onStarCollected(UUID userId, StarActionRequest request);
     GameStateResponse onStarDelivered(UUID userId, StarActionRequest request);
