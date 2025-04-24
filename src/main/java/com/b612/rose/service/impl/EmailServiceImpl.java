@@ -5,6 +5,8 @@ import com.b612.rose.entity.domain.EmailLog;
 import com.b612.rose.entity.domain.Star;
 import com.b612.rose.entity.domain.User;
 import com.b612.rose.entity.enums.StarType;
+import com.b612.rose.exception.BusinessException;
+import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.EmailLogRepository;
 import com.b612.rose.repository.StarRepository;
 import com.b612.rose.repository.UserRepository;
@@ -39,14 +41,16 @@ public class EmailServiceImpl implements EmailService {
     @Transactional
     public boolean sendEmail(UUID userId, EmailRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND,
+                        "사용자를 찾을 수 없습니다: " + userId));
 
         String npcName = request.getSelectedNpc();
         String senderEmail = emailTemplateManager.getSenderEmail(npcName);
 
         StarType starType = emailTemplateManager.getStarTypeForNpc(npcName);
         Star star = starRepository.findByStarType(starType)
-                .orElseThrow(() -> new IllegalArgumentException("Star not found for type: " + starType));
+                .orElseThrow(() -> new BusinessException(ErrorCode.STAR_NOT_FOUND,
+                        "해당 별을 찾을 수 없습니다: " + starType));
 
         String purifiedTypeName = star.getPurifiedType().getDescription();
         String subject = emailTemplateManager.getSubject(npcName, purifiedTypeName);
@@ -89,11 +93,11 @@ public class EmailServiceImpl implements EmailService {
         } catch (MessagingException e) {
             log.error("이메일 전송 실패 (MessagingException): {}", e.getMessage(), e);
             saveFailedEmailLog(userId, request.getEmail(), subject, content);
-            return false;
+            throw new BusinessException(ErrorCode.EMAIL_SENDING_FAILED, e.getMessage(), e);
         } catch (Exception e) {
             log.error("이메일 전송 실패 (일반 예외): {}", e.getMessage(), e);
             saveFailedEmailLog(userId, request.getEmail(), subject, content);
-            return false;
+            throw new BusinessException(ErrorCode.EMAIL_SENDING_FAILED, e.getMessage(), e);
         }
     }
 

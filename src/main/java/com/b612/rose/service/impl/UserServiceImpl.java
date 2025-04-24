@@ -5,6 +5,8 @@ import com.b612.rose.dto.response.UserResponse;
 import com.b612.rose.entity.domain.GameProgress;
 import com.b612.rose.entity.domain.User;
 import com.b612.rose.entity.enums.GameStage;
+import com.b612.rose.exception.BusinessException;
+import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.GameProgressRepository;
 import com.b612.rose.repository.UserRepository;
 import com.b612.rose.service.service.UserService;
@@ -65,7 +67,8 @@ public class UserServiceImpl implements UserService {
     private UserResponse convertToResponse(User user) {
         GameStage currentStage = gameProgressRepository.findByUserId(user.getUserId())
                 .map(GameProgress::getCurrentStage)
-                .orElse(GameStage.INTRO);
+                .orElseThrow(() -> new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND,
+                        "게임 진척도를 찾을 수 없습니다. userId: " + user.getUserId()));
 
         return UserResponse.builder()
                 .id(user.getUserId())

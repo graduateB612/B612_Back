@@ -4,6 +4,8 @@ import com.b612.rose.dto.response.DialogueResponse;
 import com.b612.rose.entity.domain.Dialogue;
 import com.b612.rose.entity.domain.User;
 import com.b612.rose.entity.enums.GameStage;
+import com.b612.rose.exception.BusinessException;
+import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.DialogueRepository;
 import com.b612.rose.repository.UserRepository;
 import com.b612.rose.service.service.DialogueService;
@@ -25,7 +27,8 @@ public class DialogueServiceImpl implements DialogueService {
     @Override
     public DialogueResponse getDialogueByType(String dialogueType, UUID userId) {
         Dialogue dialogue = dialogueRepository.findByDialogueType(dialogueType)
-                .orElseThrow(() -> new IllegalArgumentException("Dialogue not found with type: " + dialogueType));
+                .orElseThrow(() -> new BusinessException(ErrorCode.DIALOGUE_NOT_FOUND,
+                        "해당 대화를 찾을 수 없음: "+dialogueType));
 
         return formatDialogueResponse(dialogue, userId);
     }
@@ -33,7 +36,8 @@ public class DialogueServiceImpl implements DialogueService {
     @Override
     public DialogueResponse getDialogueByTypeAndNpcId(String dialogueType, Integer npcId, UUID userId) {
         Dialogue dialogue = dialogueRepository.findByDialogueTypeAndNpcId(dialogueType, npcId)
-                .orElseThrow(() -> new IllegalArgumentException("Dialogue not found with type: " + dialogueType + " and npcId: " + npcId));
+                .orElseThrow(() -> new BusinessException(ErrorCode.DIALOGUE_NOT_FOUND,
+                        "해당 대화를 찾을 수 없음: "+dialogueType+", npcId = "+npcId));
 
         return formatDialogueResponse(dialogue, userId);
     }
@@ -44,7 +48,8 @@ public class DialogueServiceImpl implements DialogueService {
 
         List<Dialogue> dialogues = dialogueRepository.findByDialogueTypeOrderByNpcId(dialogueType);
         if (dialogues.isEmpty()) {
-            throw new IllegalArgumentException("No dialogues found for stage: " + currentStage);
+            throw new BusinessException(ErrorCode.DIALOGUE_NOT_FOUND,
+                    "해당 대화를 찾을 수 없음: "+currentStage);
         }
 
         return dialogues.stream()
@@ -56,7 +61,8 @@ public class DialogueServiceImpl implements DialogueService {
     public List<DialogueResponse> getDialoguesByType(String dialogueType, UUID userId) {
         List<Dialogue> dialogues = dialogueRepository.findByDialogueTypeOrderByNpcId(dialogueType);
         if (dialogues.isEmpty()) {
-            throw new IllegalArgumentException("No dialogues found with type: " + dialogueType);
+            throw new BusinessException(ErrorCode.DIALOGUE_NOT_FOUND,
+                    "해당 대화를 찾을 수 없음: "+dialogueType);
         }
 
         return dialogues.stream()
@@ -77,7 +83,8 @@ public class DialogueServiceImpl implements DialogueService {
             case REQUEST_INPUT -> "quest_end";
             case NPC_SELECTION -> "pick_npc";
             case GAME_COMPLETE -> "game_clear";
-            default -> throw new IllegalArgumentException("No dialogue defined for stage: " + currentStage);
+            default -> throw new BusinessException(ErrorCode.DIALOGUE_NOT_FOUND,
+                    "해당 대화를 찾을 수 없음: "+currentStage);
         };
     }
 
