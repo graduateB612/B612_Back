@@ -17,6 +17,7 @@ import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.*;
 import com.b612.rose.service.service.DialogueService;
+import com.b612.rose.service.service.EmailAsyncService;
 import com.b612.rose.service.service.EmailService;
 import com.b612.rose.service.service.GameProgressService;
 import com.b612.rose.utils.GameStateManager;
@@ -38,7 +39,7 @@ public class GameProgressServiceImpl implements GameProgressService {
     private final StarRepository starRepository;
     private final DialogueService dialogueService;
     private final GameStateManager gameStateManager;
-    private final EmailService emailService;
+    private final EmailAsyncService emailAsyncService;
 
 
     @Override
@@ -147,17 +148,20 @@ public class GameProgressServiceImpl implements GameProgressService {
                     "NPC를 선택해야 합니다.");
         }
 
-        log.info("게임 완료 및 이메일 전송 요청 - 사용자: {}, 이메일: {}, 선택한 NPC: {}",
+        log.info("게임 완료 처리 - 사용자: {}, 이메일: {}, 선택한 NPC: {}",
                 userId, request.getEmail(), request.getSelectedNpc());
+
         gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
 
+        GameStateResponse response = getCurrentGameState(userId);
+
         try {
-            emailService.sendEmailAsync(userId, request);
-            log.info("이메일 전송 요청이 큐에 추가됨 - 사용자: {}", userId);
+            log.info("비동기 이메일 전송 요청 - 사용자: {}", userId);
+            emailAsyncService.sendEmailAsync(userId, request);
         } catch (Exception e) {
             log.error("이메일 전송 요청 실패 - 사용자: {}, 오류: {}", userId, e.getMessage());
         }
 
-        return getCurrentGameState(userId);
+        return response;
     }
 }

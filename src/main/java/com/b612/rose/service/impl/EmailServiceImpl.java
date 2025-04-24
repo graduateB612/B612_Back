@@ -101,19 +101,6 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    @Async("taskExecutor")
-    @Override
-    public void sendEmailAsync(UUID userId, EmailRequest request) {
-        try {
-            log.info("비동기 이메일 전송 시작 - 사용자: {}, 이메일: {}", userId, request.getEmail());
-            sendEmail(userId, request);
-            log.info("비동기 이메일 전송 완료 - 사용자: {}, 이메일: {}", userId, request.getEmail());
-        } catch (Exception e) {
-            log.error("비동기 이메일 전송 실패 - 사용자: {}, 이메일: {}, 오류: {}",
-                    userId, request.getEmail(), e.getMessage(), e);
-        }
-    }
-
     private void saveFailedEmailLog(UUID userId, String email, String subject, String content) {
         try {
             EmailLog failedLog = EmailLog.builder()
