@@ -21,6 +21,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -38,7 +39,6 @@ public class EmailServiceImpl implements EmailService {
     private final EmailTemplateManager emailTemplateManager;
 
     @Override
-    @Transactional
     public boolean sendEmail(UUID userId, EmailRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND,
@@ -98,6 +98,19 @@ public class EmailServiceImpl implements EmailService {
             log.error("이메일 전송 실패 (일반 예외): {}", e.getMessage(), e);
             saveFailedEmailLog(userId, request.getEmail(), subject, content);
             throw new BusinessException(ErrorCode.EMAIL_SENDING_FAILED, e.getMessage(), e);
+        }
+    }
+
+    @Async("taskExecutor")
+    @Override
+    public void sendEmailAsync(UUID userId, EmailRequest request) {
+        try {
+            log.info("비동기 이메일 전송 시작 - 사용자: {}, 이메일: {}", userId, request.getEmail());
+            sendEmail(userId, request);
+            log.info("비동기 이메일 전송 완료 - 사용자: {}, 이메일: {}", userId, request.getEmail());
+        } catch (Exception e) {
+            log.error("비동기 이메일 전송 실패 - 사용자: {}, 이메일: {}, 오류: {}",
+                    userId, request.getEmail(), e.getMessage(), e);
         }
     }
 

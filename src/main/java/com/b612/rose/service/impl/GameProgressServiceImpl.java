@@ -147,18 +147,16 @@ public class GameProgressServiceImpl implements GameProgressService {
                     "NPC를 선택해야 합니다.");
         }
 
-        log.info("이메일 전송 시도, userId: {}, email: {}, selectedNpc: {}",
+        log.info("게임 완료 및 이메일 전송 요청 - 사용자: {}, 이메일: {}, 선택한 NPC: {}",
                 userId, request.getEmail(), request.getSelectedNpc());
-        boolean isEmailSent = emailService.sendEmail(userId, request);
-
-        if (!isEmailSent) {
-            log.error("이메일 전송에 실패했습니다. userId: {}, email: {}", userId, request.getEmail());
-            throw new BusinessException(ErrorCode.EMAIL_SENDING_FAILED,
-                    "이메일 전송에 실패했습니다.");
-        }
-
-        log.info("이메일 전송 성공, 게임을 완료합니다. userId: {}", userId);
         gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
+
+        try {
+            emailService.sendEmailAsync(userId, request);
+            log.info("이메일 전송 요청이 큐에 추가됨 - 사용자: {}", userId);
+        } catch (Exception e) {
+            log.error("이메일 전송 요청 실패 - 사용자: {}, 오류: {}", userId, e.getMessage());
+        }
 
         return getCurrentGameState(userId);
     }

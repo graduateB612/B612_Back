@@ -7,4 +7,5 @@ import java.util.UUID;
 
 public interface EmailService {
     boolean sendEmail(UUID userId, EmailRequest request);
+    void sendEmailAsync(UUID userId, EmailRequest request);
 }
