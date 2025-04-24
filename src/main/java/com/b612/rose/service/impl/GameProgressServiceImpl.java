@@ -17,6 +17,7 @@ import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.*;
 import com.b612.rose.service.service.DialogueService;
+import com.b612.rose.service.service.EmailAsyncService;
 import com.b612.rose.service.service.EmailService;
 import com.b612.rose.service.service.GameProgressService;
 import com.b612.rose.utils.GameStateManager;
@@ -38,7 +39,7 @@ public class GameProgressServiceImpl implements GameProgressService {
     private final StarRepository starRepository;
     private final DialogueService dialogueService;
     private final GameStateManager gameStateManager;
-    private final EmailService emailService;
+    private final EmailAsyncService emailAsyncService;
 
 
     @Override
@@ -147,19 +148,20 @@ public class GameProgressServiceImpl implements GameProgressService {
                     "NPC를 선택해야 합니다.");
         }
 
-        log.info("이메일 전송 시도, userId: {}, email: {}, selectedNpc: {}",
+        log.info("게임 완료 처리 - 사용자: {}, 이메일: {}, 선택한 NPC: {}",
                 userId, request.getEmail(), request.getSelectedNpc());
-        boolean isEmailSent = emailService.sendEmail(userId, request);
 
-        if (!isEmailSent) {
-            log.error("이메일 전송에 실패했습니다. userId: {}, email: {}", userId, request.getEmail());
-            throw new BusinessException(ErrorCode.EMAIL_SENDING_FAILED,
-                    "이메일 전송에 실패했습니다.");
-        }
-
-        log.info("이메일 전송 성공, 게임을 완료합니다. userId: {}", userId);
         gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
 
-        return getCurrentGameState(userId);
+        GameStateResponse response = getCurrentGameState(userId);
+
+        try {
+            log.info("비동기 이메일 전송 요청 - 사용자: {}", userId);
+            emailAsyncService.sendEmailAsync(userId, request);
+        } catch (Exception e) {
+            log.error("이메일 전송 요청 실패 - 사용자: {}, 오류: {}", userId, e.getMessage());
+        }
+
+        return response;
     }
 }

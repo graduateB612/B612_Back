@@ -14,7 +14,7 @@ import java.net.BindException;
 @ControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
-    @ExceptionHandler(value = Exception.class)
+    @ExceptionHandler(BusinessException.class)
     protected ResponseEntity<ErrorResponse> handleBusinessException(
             BusinessException e, HttpServletRequest request
     ) {

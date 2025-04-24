@@ -3,6 +3,8 @@ package com.b612.rose.utils;
 import com.b612.rose.entity.domain.Star;
 import com.b612.rose.entity.domain.User;
 import com.b612.rose.entity.enums.StarType;
+import com.b612.rose.exception.BusinessException;
+import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.StarRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -77,14 +79,14 @@ public class EmailTemplateManager {
     public String getEmailContent(User user, String npcName) {
         StarType starType = getStarTypeForNpc(npcName);
         Star star = starRepository.findByStarType(starType)
-                .orElseThrow(() -> new IllegalArgumentException("Star not found for type: " + starType));
+                .orElseThrow(() -> new BusinessException(ErrorCode.STAR_NOT_FOUND, "해당 타입의 별을 찾을 수 없습니다. " + starType));
 
         String purifiedTypeName = star.getPurifiedType().getDescription();
         String templatePath = npcTemplatePathMap.getOrDefault(npcName, "classpath:templates/emails/default-email.html");
 
         try {
             Resource resource = resourceLoader.getResource(templatePath);
-            String template = new String(Files.readAllBytes(Paths.get(resource.getURI())), StandardCharsets.UTF_8);
+            String template = Files.readString(Paths.get(resource.getURI()));
 
             template = template.replace("{{userName}}", user.getUserName())
                     .replace("{{purifiedType}}", purifiedTypeName);
