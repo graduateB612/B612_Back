@@ -2,6 +2,8 @@ package com.b612.rose.controller;
 
 import com.b612.rose.dto.request.UserCreateRequest;
 import com.b612.rose.dto.response.UserResponse;
+import com.b612.rose.exception.BusinessException;
+import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.service.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,8 +26,9 @@ public class UserController {
 
     @GetMapping("/{userId}")
     public ResponseEntity<UserResponse> getUserInfo(@PathVariable UUID userId) {
-        return userService.getUserById(userId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        UserResponse userResponse = userService.getUserById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND,
+                        "User not found with ID: " + userId));
+        return ResponseEntity.ok(userResponse);
     }
 }

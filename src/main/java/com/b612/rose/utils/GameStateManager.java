@@ -4,10 +4,13 @@ import com.b612.rose.entity.domain.*;
 import com.b612.rose.entity.enums.GameStage;
 import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.entity.enums.StarType;
+import com.b612.rose.exception.BusinessException;
+import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.validation.BindException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,7 +30,8 @@ public class GameStateManager {
     @Transactional
     public void handleGameStart(UUID userId) {
         userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND,
+                        "사용자를 찾을 수 없습니다. userId: " + userId));
 
         List<Star> allStars = starRepository.findAll();
 
@@ -59,20 +63,28 @@ public class GameStateManager {
         }
 
         return switch (starType) {
-            case PRIDE -> GameStage.COLLECT_ENVY;
             case ENVY -> GameStage.DELIVER_ENVY;
             case LONELY -> GameStage.DELIVER_LONELY;
             case SAD -> GameStage.DELIVER_SAD;
+            default -> throw new BusinessException(ErrorCode.STAR_NOT_FOUND,
+                    "해당 별을 찾을 수 없습니다. " + starType);
         };
     }
 
     @Transactional
     public void markStarAsCollected(UUID userId, StarType starType) {
         Star star = starRepository.findByStarType(starType)
-                .orElseThrow(() -> new IllegalArgumentException("Star not found with type: " + starType));
+                .orElseThrow(() -> new BusinessException(ErrorCode.STAR_NOT_FOUND,
+                        "해당 별을 찾을 수 없습니다. " + starType));
 
         CollectedStar oldCollectedStar = collectedStarRepository.findByUserIdAndStarStarType(userId, starType)
-                .orElseThrow(() -> new IllegalArgumentException("Collected star not found for user: " + userId + " and type: " + starType));
+                .orElseThrow(() ->new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
+                        "수집된 별을 찾을 수 없습니다. userId : " + userId + " 별 종류: " + starType));
+
+        if (oldCollectedStar.isCollected() && starType != StarType.PRIDE) {
+            throw new BusinessException(ErrorCode.STAR_ALREADY_COLLECTED,
+                    "이 별은 이미 수집되었습니다. : " + starType);
+        }
 
         CollectedStar updatedCollectedStar = CollectedStar.builder()
                 .collectionId(oldCollectedStar.getCollectionId())
@@ -90,11 +102,22 @@ public class GameStateManager {
     @Transactional
     public void markStarAsDelivered(UUID userId, StarType starType) {
         Star star = starRepository.findByStarType(starType)
-                .orElseThrow(() -> new IllegalArgumentException("Star not found with type: " + starType));
+                .orElseThrow(() -> new BusinessException(ErrorCode.STAR_NOT_FOUND,
+                        "해당 타입의 별을 찾을 수 없습니다. :  " + starType));
 
         CollectedStar oldCollectedStar = collectedStarRepository.findByUserIdAndStarStarType(userId, starType)
-                .orElseThrow(() -> new IllegalArgumentException("Collected star not found for user: " + userId + " and type: " + starType));
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
+                        "사용자에게서 수집된 별을 찾을 수 없습니다. : " + userId + " 별의 종류: " + starType));
 
+        if (!oldCollectedStar.isCollected()) {
+            throw new BusinessException(ErrorCode.STAR_NOT_COLLECTED,
+                    "별 전달을 위해선 먼저 수집해야합니다. " + starType);
+        }
+
+        if (oldCollectedStar.isDelivered() && starType != StarType.PRIDE) {
+            throw new BusinessException(ErrorCode.STAR_ALREADY_COLLECTED,
+                    "이미 전달된 별입니다. " + starType);
+        }
         CollectedStar updatedCollectedStar = CollectedStar.builder()
                 .collectionId(oldCollectedStar.getCollectionId())
                 .userId(userId)
@@ -116,7 +139,8 @@ public class GameStateManager {
     protected void activateRequestForm(UUID userId) {
         InteractiveObject requestFormObject = interactiveObjectRepository
                 .findByObjectType(InteractiveObjectType.REQUEST_FORM)
-                .orElseThrow(() -> new IllegalArgumentException("Request form object not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.OBJECT_NOT_FOUND,
+                        "요청 오브젝트를 찾을 수 없습니다."));
 
         UserInteraction interaction = userInteractionRepository
                 .findByUserIdAndObjectId(userId, requestFormObject.getObjectId())
@@ -127,7 +151,7 @@ public class GameStateManager {
                     .userId(userId)
                     .objectId(requestFormObject.getObjectId())
                     .hasInteracted(false)
-                    .isActive(true)  // 활성화
+                    .isActive(true)
                     .build();
         } else {
             interaction = UserInteraction.builder()
@@ -147,7 +171,8 @@ public class GameStateManager {
     @Transactional
     public void completeGame(UUID userId, String email, String concern, String selectedNpc) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND,
+                        "사용자를 찾을 수 없습니다: " + userId));
 
         User updatedUser = User.builder()
                 .userId(user.getUserId())
@@ -161,7 +186,8 @@ public class GameStateManager {
         userRepository.save(updatedUser);
 
         GameProgress progress = gameProgressRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Game progress not found for user: " + userId));
+                .orElseThrow(() -> new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND,
+                        "사용자의 게임 진척도를 찾을 수 없습니다: " + userId));
 
         GameProgress updatedProgress = GameProgress.builder()
                 .progressId(progress.getProgressId())

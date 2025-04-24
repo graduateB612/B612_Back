@@ -13,6 +13,8 @@ import com.b612.rose.entity.domain.UserInteraction;
 import com.b612.rose.entity.enums.GameStage;
 import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.entity.enums.StarType;
+import com.b612.rose.exception.BusinessException;
+import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.*;
 import com.b612.rose.service.service.DialogueService;
 import com.b612.rose.service.service.EmailService;
@@ -43,7 +45,8 @@ public class GameProgressServiceImpl implements GameProgressService {
     @Transactional
     public GameStateResponse updateGameStage(UUID userId, GameStageUpdateRequest request) {
         GameProgress currentProgress = gameProgressRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Game progress not found for user ID: " + userId));
+                .orElseThrow(() -> new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND,
+                        "게임 진척도를 찾을 수 없음. 사용자 ID: "+userId));
 
         GameStage newStage = request.getNewStage();
 
@@ -72,7 +75,8 @@ public class GameProgressServiceImpl implements GameProgressService {
     @Transactional
     public GameStateResponse onStarCollected(UUID userId, StarActionRequest request) {
         Star star = starRepository.findByStarType(request.getStarType())
-                .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + request.getStarType()));
+                .orElseThrow(() -> new BusinessException(ErrorCode.STAR_NOT_FOUND,
+                        "해당 별을 찾을 수 없음. ID: "+ request.getStarType()));
 
         gameStateManager.markStarAsCollected(userId, request.getStarType());
         
@@ -88,7 +92,8 @@ public class GameProgressServiceImpl implements GameProgressService {
     @Transactional
     public GameStateResponse onStarDelivered(UUID userId, StarActionRequest request) {
         Star star = starRepository.findByStarType(request.getStarType())
-                .orElseThrow(() -> new IllegalArgumentException("Star not found with ID: " + request.getStarType()));
+                .orElseThrow(() -> new BusinessException(ErrorCode.STAR_NOT_FOUND,
+                        "해당 별을 찾을 수 없음. ID: "+ request.getStarType()));
 
         gameStateManager.markStarAsDelivered(userId, request.getStarType());
 
@@ -108,7 +113,8 @@ public class GameProgressServiceImpl implements GameProgressService {
         GameStage currentStage = getCurrentStage(userId);
 
         if (currentStage == null) {
-            throw new IllegalArgumentException("Game progress not found for user ID: " + userId);
+            throw new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND,
+                    "게임 진척도를 찾을 수 없음. userId: "+ userId);
         }
 
         List<DialogueResponse> dialogues = dialogueService.getDialoguesForCurrentStage(userId, currentStage);
@@ -125,29 +131,33 @@ public class GameProgressServiceImpl implements GameProgressService {
     public GameStateResponse completeGameAndSendEmail(UUID userId, EmailRequest request) {
         if (!gameStateManager.areAllStarsCollectedAndDelivered(userId)) {
             log.error("모든 별이 수집 및 전달되지 않았습니다. userId: {}", userId);
-            throw new IllegalStateException("모든 별이 수집 및 전달되지 않았습니다");
+            throw new BusinessException(ErrorCode.STARS_NOT_COMPLETED,
+                    "모든 별이 수집 및 전달되지 않았습니다.");
         }
 
         if (request.getEmail() == null || request.getEmail().isBlank()) {
             log.error("이메일 주소가 비어있습니다. userId: {}", userId);
-            throw new IllegalArgumentException("이메일 주소가 필요합니다");
+            throw new BusinessException(ErrorCode.EMAIL_REQUIRED,
+                    "이메일 주소가 필요합니다.");
         }
 
         if (request.getSelectedNpc() == null || request.getSelectedNpc().isBlank()) {
             log.error("선택된 NPC가 없습니다. userId: {}", userId);
-            throw new IllegalArgumentException("NPC를 선택해야 합니다");
+            throw new BusinessException(ErrorCode.NPC_SELECTION_REQUIRED,
+                    "NPC를 선택해야 합니다.");
         }
 
-        log.info("이메일 전송 시도. userId: {}, email: {}, selectedNpc: {}",
+        log.info("이메일 전송 시도, userId: {}, email: {}, selectedNpc: {}",
                 userId, request.getEmail(), request.getSelectedNpc());
         boolean isEmailSent = emailService.sendEmail(userId, request);
 
         if (!isEmailSent) {
             log.error("이메일 전송에 실패했습니다. userId: {}, email: {}", userId, request.getEmail());
-            throw new RuntimeException("이메일 전송에 실패했습니다");
+            throw new BusinessException(ErrorCode.EMAIL_SENDING_FAILED,
+                    "이메일 전송에 실패했습니다.");
         }
 
-        log.info("이메일 전송 성공, 게임 완료 처리. userId: {}", userId);
+        log.info("이메일 전송 성공, 게임을 완료합니다. userId: {}", userId);
         gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
 
         return getCurrentGameState(userId);

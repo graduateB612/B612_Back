@@ -1,5 +1,6 @@
 package com.b612.rose.exception;
 
+import jakarta.mail.MessagingException;
 import lombok.Getter;
 
 @Getter
@@ -16,8 +17,8 @@ public class BusinessException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    public BusinessException(ErrorCode errorCode, Throwable cause) {
-        super(errorCode.getMessage(), cause);
+    public BusinessException(ErrorCode errorCode, String message, Throwable cause) {
+        super(message, cause);
         this.errorCode = errorCode;
     }
 }

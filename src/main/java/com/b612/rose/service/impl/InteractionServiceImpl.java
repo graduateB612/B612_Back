@@ -3,6 +3,8 @@ package com.b612.rose.service.impl;
 import com.b612.rose.dto.response.*;
 import com.b612.rose.entity.domain.*;
 import com.b612.rose.entity.enums.InteractiveObjectType;
+import com.b612.rose.exception.BusinessException;
+import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.*;
 import com.b612.rose.service.service.DialogueService;
 import com.b612.rose.service.service.InteractionService;
@@ -120,7 +122,8 @@ public class InteractionServiceImpl implements InteractionService {
     @Transactional
     public List<DialogueResponse> getRequestForm(UUID userId) {
         InteractiveObject requestFormObject = interactiveObjectRepository.findByObjectType(InteractiveObjectType.REQUEST_FORM)
-                .orElseThrow(() -> new IllegalArgumentException("Request form object not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.OBJECT_NOT_FOUND,
+                        "오브젝트를 찾을 수 없습니다: 의뢰서"));
 
         Optional<UserInteraction> interactionOpt = userInteractionRepository
                 .findByUserIdAndObjectId(userId, requestFormObject.getObjectId());
@@ -128,7 +131,8 @@ public class InteractionServiceImpl implements InteractionService {
         boolean isActive = interactionOpt.map(UserInteraction::isActive).orElse(false);
 
         if (!isActive) {
-            return Collections.emptyList();
+            throw new BusinessException(ErrorCode.OBJECT_NOT_ACTIVE,
+                    "의뢰서는 아직 사용할 수 없습니다. userId: " + userId);
         }
 
         updateInteraction(userId, InteractiveObjectType.REQUEST_FORM);
@@ -138,7 +142,8 @@ public class InteractionServiceImpl implements InteractionService {
     @Transactional
     protected void updateInteraction(UUID userId, InteractiveObjectType objectType) {
         InteractiveObject object = interactiveObjectRepository.findByObjectType(objectType)
-                .orElseThrow(() -> new IllegalArgumentException("Object not found with type: " + objectType));
+                .orElseThrow(() -> new BusinessException(ErrorCode.OBJECT_NOT_FOUND,
+                        "오브젝트를 찾을 수 없습니다: " + objectType));
 
         UserInteraction interaction = userInteractionRepository
                 .findByUserIdAndObjectId(userId, object.getObjectId())
