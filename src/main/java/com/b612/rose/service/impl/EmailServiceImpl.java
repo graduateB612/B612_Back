@@ -38,6 +38,7 @@ public class EmailServiceImpl implements EmailService {
     private final StarRepository starRepository;
     private final EmailTemplateManager emailTemplateManager;
 
+    // 이메일 전송 처리
     @Override
     public boolean sendEmail(UUID userId, EmailRequest request) {
         User user = userRepository.findById(userId)

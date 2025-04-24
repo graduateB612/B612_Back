@@ -26,6 +26,7 @@ public class InteractionServiceImpl implements InteractionService {
     private final DialogueService dialogueService;
     private final NpcProfileRepository npcProfileRepository;
 
+    // 오브젝트 상태 반환
     @Override
     public List<ObjectStatusResponse> getObjectStatus(UUID userId) {
         List<ObjectStatusResponse> responses = new ArrayList<>();
@@ -48,6 +49,7 @@ public class InteractionServiceImpl implements InteractionService {
         return responses;
     }
 
+    // 별 도감 데이터 조회
     @Override
     @Transactional
     public StarGuideResponse getStarGuide(UUID userId, int page, boolean includeDialogues) {
@@ -59,6 +61,7 @@ public class InteractionServiceImpl implements InteractionService {
 
         List<StarGuideEntry> allEntries = starGuideEntryRepository.findAllByOrderByOrderIndexAsc();
 
+        // 페이징
         final int ENTRIES_PER_PAGE = 4;
         int totalPages = (int) Math.ceil((double) allEntries.size() / ENTRIES_PER_PAGE);
 
@@ -90,6 +93,7 @@ public class InteractionServiceImpl implements InteractionService {
                 .build();
     }
 
+    // 캐릭터 프로필 조회
     @Override
     @Transactional
     public CharacterProfileResponse getCharacterProfile(UUID userId) {
@@ -117,7 +121,7 @@ public class InteractionServiceImpl implements InteractionService {
                 .build();
     }
 
-
+    // 의뢰서 상호작용
     @Override
     @Transactional
     public List<DialogueResponse> getRequestForm(UUID userId) {
@@ -139,6 +143,7 @@ public class InteractionServiceImpl implements InteractionService {
         return Collections.emptyList();
     }
 
+    // 상호작용 상태 업데이트
     @Transactional
     protected void updateInteraction(UUID userId, InteractiveObjectType objectType) {
         InteractiveObject object = interactiveObjectRepository.findByObjectType(objectType)

@@ -24,6 +24,7 @@ public class DialogueServiceImpl implements DialogueService {
     private final DialogueRepository dialogueRepository;
     private final UserRepository userRepository;
 
+    // 대화 유형에 따라 대화 내용 검색, npc 무관
     @Override
     public DialogueResponse getDialogueByType(String dialogueType, UUID userId) {
         Dialogue dialogue = dialogueRepository.findByDialogueType(dialogueType)
@@ -33,6 +34,7 @@ public class DialogueServiceImpl implements DialogueService {
         return formatDialogueResponse(dialogue, userId);
     }
 
+    // 대화 유형과 npc에 따라 대화 내용 검색
     @Override
     public DialogueResponse getDialogueByTypeAndNpcId(String dialogueType, Integer npcId, UUID userId) {
         Dialogue dialogue = dialogueRepository.findByDialogueTypeAndNpcId(dialogueType, npcId)
@@ -42,6 +44,7 @@ public class DialogueServiceImpl implements DialogueService {
         return formatDialogueResponse(dialogue, userId);
     }
 
+    // 현재 게임 진척도에 맞는 대화 검색
     @Override
     public List<DialogueResponse> getDialoguesForCurrentStage(UUID userId, GameStage currentStage) {
         String dialogueType = getDialogueTypeForStage(currentStage);
@@ -57,6 +60,7 @@ public class DialogueServiceImpl implements DialogueService {
                 .collect(Collectors.toList());
     }
 
+    // 대화 유형에 따라 대화 내용 검색 (여러 개)
     @Override
     public List<DialogueResponse> getDialoguesByType(String dialogueType, UUID userId) {
         List<Dialogue> dialogues = dialogueRepository.findByDialogueTypeOrderByNpcId(dialogueType);
@@ -70,6 +74,7 @@ public class DialogueServiceImpl implements DialogueService {
                 .collect(Collectors.toList());
     }
 
+    // 진척도에 맞는 대화 유형 매핑
     private String getDialogueTypeForStage(GameStage currentStage) {
         return switch (currentStage) {
             case GAME_START -> "tutorial";
@@ -88,6 +93,7 @@ public class DialogueServiceImpl implements DialogueService {
         };
     }
 
+    // 대화 내용에 userName이 들어가야 하는 경우 포맷팅
     private DialogueResponse formatDialogueResponse(Dialogue dialogue, UUID userId) {
         String formattedText = dialogue.getDialogueText();
 

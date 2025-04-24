@@ -31,6 +31,7 @@ public class EmailTemplateManager {
     private final Map<String, String> npcImagePathMap = new HashMap<>();
     private final Map<String, String> npcCharacterImageMap = new HashMap<>();
 
+    // npc별 이메일 데이터 초기화
     @PostConstruct
     public void init() {
         npcEmailMap.put("어린왕자", "little_p@b612.rose.com");
@@ -56,26 +57,32 @@ public class EmailTemplateManager {
         npcCharacterImageMap.put("여우", "static/images/character/fox_character.png");
     }
 
+    // 캐릭터 이름으로 보내는 사람 이메일 가져오기
     public String getSenderEmail(String npcName) {
         return npcEmailMap.getOrDefault(npcName, "noreply@b612.rose.com");
     }
 
+    // 캐릭터 이름으로 별 정보 불러오기
     public StarType getStarTypeForNpc(String npcName) {
         return npcStarTypeMap.get(npcName);
     }
 
+    // 제목 작성
     public String getSubject(String npcName, String purifiedTypeName) {
         return npcName + "의 선물 - " + purifiedTypeName + "의 별";
     }
 
+    // 캐릭터별 별의 이미지 불러오기
     public String getStarImagePath(String npcName) {
         return npcImagePathMap.getOrDefault(npcName, "static/images/stars/default-star.png");
     }
 
+    // 캐릭터 이미지 불러오기
     public String getCharacterImagePath(String npcName) {
         return npcCharacterImageMap.getOrDefault(npcName, "static/images/character/default-character.png");
     }
 
+    // 이메일 내용 작성
     public String getEmailContent(User user, String npcName) {
         StarType starType = getStarTypeForNpc(npcName);
         Star star = starRepository.findByStarType(starType)

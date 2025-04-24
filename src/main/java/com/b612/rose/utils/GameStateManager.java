@@ -27,6 +27,7 @@ public class GameStateManager {
     private final InteractiveObjectRepository interactiveObjectRepository;
     private final UserInteractionRepository userInteractionRepository;
 
+    // 게임 시작때 필요한 로직
     @Transactional
     public void handleGameStart(UUID userId) {
         userRepository.findById(userId)
@@ -48,6 +49,7 @@ public class GameStateManager {
         initUserInteractions(userId);
     }
 
+    // 별 줍는 거에 따라 어떤 스테이지로 업데이트할지
     public GameStage getCollectStageForStar(StarType starType) {
         return switch (starType) {
             case PRIDE -> GameStage.COLLECT_PRIDE;
@@ -57,6 +59,7 @@ public class GameStateManager {
         };
     }
 
+    // 별 주는 거에 따라 어떤 스테이지로 업데이트할지
     public GameStage getDeliverStageForStar(StarType starType) {
         if (starType == StarType.PRIDE) {
             return GameStage.COLLECT_ENVY;
@@ -71,6 +74,7 @@ public class GameStateManager {
         };
     }
 
+    // 별 주웠다고 업데이트
     @Transactional
     public void markStarAsCollected(UUID userId, StarType starType) {
         Star star = starRepository.findByStarType(starType)
@@ -99,6 +103,7 @@ public class GameStateManager {
         collectedStarRepository.save(updatedCollectedStar);
     }
 
+    // 별 줬다고 업데이트
     @Transactional
     public void markStarAsDelivered(UUID userId, StarType starType) {
         Star star = starRepository.findByStarType(starType)
@@ -135,6 +140,7 @@ public class GameStateManager {
         }
     }
 
+    // 의뢰서 활성화
     @Transactional
     protected void activateRequestForm(UUID userId) {
         InteractiveObject requestFormObject = interactiveObjectRepository
@@ -167,7 +173,7 @@ public class GameStateManager {
         userInteractionRepository.save(interaction);
     }
 
-
+    // 게임 완료 처리
     @Transactional
     public void completeGame(UUID userId, String email, String concern, String selectedNpc) {
         User user = userRepository.findById(userId)
@@ -199,6 +205,7 @@ public class GameStateManager {
         gameProgressRepository.save(updatedProgress);
     }
 
+    // 별 다 줍고 전달했는지 검증
     public boolean areAllStarsCollectedAndDelivered(UUID userId) {
         List<CollectedStar> stars = collectedStarRepository.findAllByUserId(userId);
 
@@ -209,6 +216,7 @@ public class GameStateManager {
         return stars.stream().allMatch(star -> star.isCollected() && star.isDelivered());
     }
 
+    // 상호작용 요소 초기화
     private void initUserInteractions(UUID userId) {
         List<InteractiveObject> objects = interactiveObjectRepository.findAll();
 

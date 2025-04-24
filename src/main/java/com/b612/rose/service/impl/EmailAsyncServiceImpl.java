@@ -16,6 +16,7 @@ import java.util.UUID;
 public class EmailAsyncServiceImpl implements EmailAsyncService {
     private final EmailService emailService;
 
+    // 이메일 전송 비동기처리
     @Async("taskExecutor")
     @Override
     public void sendEmailAsync(UUID userId, EmailRequest request){

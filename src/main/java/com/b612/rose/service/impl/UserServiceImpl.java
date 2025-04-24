@@ -24,6 +24,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final GameProgressRepository gameProgressRepository;
 
+    // 사용자 생성
     @Override
     @Transactional
     public UserResponse createUser(UserCreateRequest request) {
@@ -47,18 +48,21 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
+    // 사용자 id로 사용자 정보 조회
     @Override
     public Optional<UserResponse> getUserById(UUID id) {
         return userRepository.findById(id)
                 .map(this::convertToResponse);
     }
 
+    // 이메일로 사용자 조회
     @Override
     public Optional<UserResponse> getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .map(this::convertToResponse);
     }
 
+    // 사용자가 존재하나요? (이메일로)
     @Override
     public boolean isUserExists(String email) {
         return userRepository.existsByEmail(email);

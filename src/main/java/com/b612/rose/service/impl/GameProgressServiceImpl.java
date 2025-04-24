@@ -41,7 +41,7 @@ public class GameProgressServiceImpl implements GameProgressService {
     private final GameStateManager gameStateManager;
     private final EmailAsyncService emailAsyncService;
 
-
+    // 게임 진척도 업데이트
     @Override
     @Transactional
     public GameStateResponse updateGameStage(UUID userId, GameStageUpdateRequest request) {
@@ -72,6 +72,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .build();
     }
 
+    // 별 수집 처리
     @Override
     @Transactional
     public GameStateResponse onStarCollected(UUID userId, StarActionRequest request) {
@@ -89,6 +90,7 @@ public class GameProgressServiceImpl implements GameProgressService {
         return updateGameStage(userId, new GameStageUpdateRequest(newStage));
     }
 
+    // 별 전달 처리
     @Override
     @Transactional
     public GameStateResponse onStarDelivered(UUID userId, StarActionRequest request) {
@@ -102,6 +104,7 @@ public class GameProgressServiceImpl implements GameProgressService {
         return updateGameStage(userId, new GameStageUpdateRequest(newStage));
     }
 
+    // 현재 스테이지 반환
     @Override
     public GameStage getCurrentStage(UUID userId) {
         return gameProgressRepository.findByUserId(userId)
@@ -109,6 +112,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .orElse(null);
     }
 
+    // 게임 상태 반환
     @Override
     public GameStateResponse getCurrentGameState(UUID userId) {
         GameStage currentStage = getCurrentStage(userId);
@@ -127,6 +131,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .build();
     }
 
+    // 게임 완료 처리, 이메일 전송 처리 -> 로직 꾸진 거 보니 고쳐야할듯
     @Override
     @Transactional
     public GameStateResponse completeGameAndSendEmail(UUID userId, EmailRequest request) {
