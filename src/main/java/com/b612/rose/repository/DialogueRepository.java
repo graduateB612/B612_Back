@@ -12,11 +12,11 @@ import java.util.Optional;
 @Repository
 public interface DialogueRepository extends JpaRepository<Dialogue, Integer> {
     @Query("SELECT d FROM Dialogue d LEFT JOIN FETCH d.npc WHERE d.dialogueType = :dialogueType")
-    Optional<Dialogue> findByDialogueTypeWithNpc(@Param("dialogueType") String dialogueType);
+    Optional<Dialogue> findByDialogueType(@Param("dialogueType") String dialogueType);
 
     @Query("SELECT d FROM Dialogue d LEFT JOIN FETCH d.npc WHERE d.dialogueType = :dialogueType ORDER BY d.npcId")
-    List<Dialogue> findByDialogueTypeOrderByNpcIdWithNpc(@Param("dialogueType") String dialogueType);
+    List<Dialogue> findByDialogueTypeOrderByNpcId(@Param("dialogueType") String dialogueType);
 
     @Query("SELECT d FROM Dialogue d LEFT JOIN FETCH d.npc WHERE d.dialogueType = :dialogueType AND d.npcId = :npcId")
-    Optional<Dialogue> findByDialogueTypeAndNpcIdWithNpc(@Param("dialogueType") String dialogueType, @Param("npcId") Integer npcId);
+    Optional<Dialogue> findByDialogueTypeAndNpcId(@Param("dialogueType") String dialogueType, @Param("npcId") Integer npcId);
 }
