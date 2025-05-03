@@ -13,8 +13,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.BindException;
 
 import java.time.LocalDateTime;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
@@ -26,6 +29,8 @@ public class GameStateManager {
     private final GameProgressRepository gameProgressRepository;
     private final InteractiveObjectRepository interactiveObjectRepository;
     private final UserInteractionRepository userInteractionRepository;
+
+    private final Map<UUID, GameStateCache> userGameStates = new ConcurrentHashMap<>();
 
     // 게임 시작때 필요한 로직
     @Transactional
@@ -47,6 +52,29 @@ public class GameStateManager {
             collectedStarRepository.save(collectedStar);
         }
         initUserInteractions(userId);
+        userGameStates.put(userId, GameStateCache.createInitial());
+    }
+
+    // 현재 스테이지 조회: 메모리에서 찾고 없으면 db
+    public GameStage getCurrentStage(UUID userId) {
+        GameStateCache cache = userGameStates.get(userId);
+        if (cache != null) {
+            return cache.getCurrentStage();
+        }
+
+        // db에서 값을 찾을 경우, 캐시에 저장
+        GameStage stage = gameProgressRepository.findByUserId(userId)
+                .map(GameProgress::getCurrentStage)
+                .orElse(GameStage.INTRO);
+
+        GameStateCache newCache = GameStateCache.builder()
+                .currentStage(stage)
+                .collectedStars(new EnumMap<>(StarType.class))
+                .deliveredStars(new EnumMap<>(StarType.class))
+                .build();
+        userGameStates.put(userId, newCache);
+
+        return stage;
     }
 
     // 별 줍는 거에 따라 어떤 스테이지로 업데이트할지
@@ -72,6 +100,38 @@ public class GameStateManager {
             default -> throw new BusinessException(ErrorCode.STAR_NOT_FOUND,
                     "해당 별을 찾을 수 없습니다. " + starType);
         };
+    }
+
+    // 메모리 캐시 업데이트, db 작업은 별도로 함
+    public void updateMemoryGameState(UUID userId, StarType starType, boolean collected, boolean delivered) {
+        userGameStates.compute(userId, (key, existingCache) -> {
+            GameStateCache cache = existingCache != null ? existingCache : GameStateCache.createInitial();
+
+            Map<StarType, Boolean> collectedMap = new EnumMap<>(cache.getCollectedStars());
+            Map<StarType, Boolean> deliveredMap = new EnumMap<>(cache.getDeliveredStars());
+
+            collectedMap.put(starType, collected);
+            deliveredMap.put(starType, delivered);
+
+            return GameStateCache.builder()
+                    .currentStage(cache.getCurrentStage())
+                    .collectedStars(collectedMap)
+                    .deliveredStars(deliveredMap)
+                    .build();
+        });
+    }
+
+    // 메모리 스테이지 업데이트
+    public void updateMemoryStage(UUID userId, GameStage newStage) {
+        userGameStates.compute(userId, (key, existingCache) -> {
+            GameStateCache cache = existingCache != null ? existingCache : GameStateCache.createInitial();
+
+            return GameStateCache.builder()
+                    .currentStage(newStage)
+                    .collectedStars(cache.getCollectedStars())
+                    .deliveredStars(cache.getDeliveredStars())
+                    .build();
+        });
     }
 
     // 별 주웠다고 업데이트
@@ -101,6 +161,7 @@ public class GameStateManager {
                 .build();
 
         collectedStarRepository.save(updatedCollectedStar);
+        updateMemoryGameState(userId, starType, true, oldCollectedStar.isDelivered());
     }
 
     // 별 줬다고 업데이트
@@ -134,6 +195,7 @@ public class GameStateManager {
                 .build();
 
         collectedStarRepository.save(updatedCollectedStar);
+        updateMemoryGameState(userId, starType, oldCollectedStar.isCollected(), true);
 
         if (starType == StarType.SAD) {
             activateRequestForm(userId);
@@ -214,6 +276,32 @@ public class GameStateManager {
         }
 
         return stars.stream().allMatch(star -> star.isCollected() && star.isDelivered());
+    }
+
+    // 이미 주운 별인지 캐시에서 확인
+    public boolean isStarCollected(UUID userId, StarType starType) {
+        GameStateCache cache = userGameStates.get(userId);
+        if (cache != null && cache.getCollectedStars().containsKey(starType)) {
+            return cache.getCollectedStars().get(starType);
+        }
+
+        // 캐시에 없으면 db에서 찾음
+        return collectedStarRepository.findByUserIdAndStarStarType(userId, starType)
+                .map(CollectedStar::isCollected)
+                .orElse(false);
+    }
+
+    // 이미 전달된 별인지 캐시에서 확인
+    public boolean isStarDelivered(UUID userId, StarType starType) {
+        GameStateCache cache = userGameStates.get(userId);
+        if (cache != null && cache.getDeliveredStars().containsKey(starType)) {
+            return cache.getDeliveredStars().get(starType);
+        }
+
+        // 캐시에 없으면 DB 조회
+        return collectedStarRepository.findByUserIdAndStarStarType(userId, starType)
+                .map(CollectedStar::isDelivered)
+                .orElse(false);
     }
 
     // 상호작용 요소 초기화
