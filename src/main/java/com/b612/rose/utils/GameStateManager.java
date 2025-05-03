@@ -62,7 +62,6 @@ public class GameStateManager {
             return cache.getCurrentStage();
         }
 
-        // db에서 값을 찾을 경우, 캐시에 저장
         GameStage stage = gameProgressRepository.findByUserId(userId)
                 .map(GameProgress::getCurrentStage)
                 .orElse(GameStage.INTRO);
@@ -202,6 +201,20 @@ public class GameStateManager {
         }
     }
 
+    @Transactional
+    public void updateDatabaseGameStage(UUID userId, GameStage newStage) {
+        GameProgress currentProgress = gameProgressRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND));
+
+        GameProgress updatedProgress = GameProgress.builder()
+                .progressId(currentProgress.getProgressId())
+                .userId(userId)
+                .currentStage(newStage)
+                .build();
+
+        gameProgressRepository.save(updatedProgress);
+    }
+
     // 의뢰서 활성화
     @Transactional
     protected void activateRequestForm(UUID userId) {
@@ -252,20 +265,9 @@ public class GameStateManager {
                 .build();
 
         userRepository.save(updatedUser);
-
-        GameProgress progress = gameProgressRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND,
-                        "사용자의 게임 진척도를 찾을 수 없습니다: " + userId));
-
-        GameProgress updatedProgress = GameProgress.builder()
-                .progressId(progress.getProgressId())
-                .userId(userId)
-                .currentStage(GameStage.GAME_COMPLETE)
-                .updatedAt(LocalDateTime.now())
-                .build();
-
-        gameProgressRepository.save(updatedProgress);
+        updateDatabaseGameStage(userId, GameStage.GAME_COMPLETE);
     }
+
 
     // 별 다 줍고 전달했는지 검증
     public boolean areAllStarsCollectedAndDelivered(UUID userId) {
@@ -278,33 +280,6 @@ public class GameStateManager {
         return stars.stream().allMatch(star -> star.isCollected() && star.isDelivered());
     }
 
-    // 이미 주운 별인지 캐시에서 확인
-    public boolean isStarCollected(UUID userId, StarType starType) {
-        GameStateCache cache = userGameStates.get(userId);
-        if (cache != null && cache.getCollectedStars().containsKey(starType)) {
-            return cache.getCollectedStars().get(starType);
-        }
-
-        // 캐시에 없으면 db에서 찾음
-        return collectedStarRepository.findByUserIdAndStarStarType(userId, starType)
-                .map(CollectedStar::isCollected)
-                .orElse(false);
-    }
-
-    // 이미 전달된 별인지 캐시에서 확인
-    public boolean isStarDelivered(UUID userId, StarType starType) {
-        GameStateCache cache = userGameStates.get(userId);
-        if (cache != null && cache.getDeliveredStars().containsKey(starType)) {
-            return cache.getDeliveredStars().get(starType);
-        }
-
-        // 캐시에 없으면 DB 조회
-        return collectedStarRepository.findByUserIdAndStarStarType(userId, starType)
-                .map(CollectedStar::isDelivered)
-                .orElse(false);
-    }
-
-    // 상호작용 요소 초기화
     private void initUserInteractions(UUID userId) {
         List<InteractiveObject> objects = interactiveObjectRepository.findAll();
 

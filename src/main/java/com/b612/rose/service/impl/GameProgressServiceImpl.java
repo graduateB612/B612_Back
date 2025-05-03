@@ -46,10 +46,6 @@ public class GameProgressServiceImpl implements GameProgressService {
     @Override
     @Transactional
     public GameStateResponse updateGameStage(UUID userId, GameStageUpdateRequest request) {
-        GameProgress currentProgress = gameProgressRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND,
-                        "게임 진척도를 찾을 수 없음. 사용자 ID: " + userId));
-
         GameStage newStage = request.getNewStage();
         gameStateManager.updateMemoryStage(userId, newStage);
         List<DialogueResponse> dialogues = dialogueService.getDialoguesForCurrentStage(userId, newStage);
@@ -60,7 +56,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .dialogues(dialogues)
                 .build();
 
-        updateGameStageAsync(userId, currentProgress.getProgressId(), newStage);
+        updateGameStageAsync(userId, newStage);
         return response;
     }
 
@@ -82,7 +78,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .dialogues(dialogues)
                 .build();
 
-        processStarCollectionAsync(userId, request, newStage);
+        processStarCollectionAsync(userId, starType, newStage);
 
         return immediateResponse;
     }
@@ -105,7 +101,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .dialogues(dialogues)
                 .build();
 
-        processStarDeliveryAsync(userId, request, newStage);
+        processStarDeliveryAsync(userId, starType, newStage);
 
         return immediateResponse;
     }
@@ -162,21 +158,19 @@ public class GameProgressServiceImpl implements GameProgressService {
         gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
         GameStateResponse response = getCurrentGameState(userId);
 
-        try {
-            log.info("비동기 이메일 전송 요청 - 사용자: {}", userId);
-            emailAsyncService.sendEmailAsync(userId, request);
-        } catch (Exception e) {
-            log.error("이메일 전송 요청 실패 - 사용자: {}, 오류: {}", userId, e.getMessage());
-        }
+        emailAsyncService.sendEmailAsync(userId, request);
 
         return response;
     }
 
     @Async("taskExecutor")
-    protected void updateGameStageAsync(UUID userId, Integer progressId, GameStage newStage) {
+    protected void updateGameStageAsync(UUID userId, GameStage newStage) {
         try {
+            GameProgress currentProgress = gameProgressRepository.findByUserId(userId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND));
+
             GameProgress updatedProgress = GameProgress.builder()
-                    .progressId(progressId)
+                    .progressId(currentProgress.getProgressId())
                     .userId(userId)
                     .currentStage(newStage)
                     .build();
@@ -195,67 +189,37 @@ public class GameProgressServiceImpl implements GameProgressService {
     }
 
     @Async("taskExecutor")
-    protected void processStarCollectionAsync(UUID userId, StarActionRequest request, GameStage newStage) {
+    protected void processStarCollectionAsync(UUID userId, StarType starType, GameStage newStage) {
         try {
-            log.info("비동기 별 수집 처리 시작: userId={}, starType={}", userId, request.getStarType());
+            log.info("비동기 별 수집 처리 시작: userId={}, starType={}", userId, starType);
 
-            Star star = starRepository.findByStarType(request.getStarType())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.STAR_NOT_FOUND,
-                            "해당 별을 찾을 수 없음: " + request.getStarType()));
+            gameStateManager.markStarAsCollected(userId, starType);
 
-            gameStateManager.markStarAsCollected(userId, request.getStarType());
-
-            if (request.getStarType() == StarType.PRIDE) {
-                gameStateManager.markStarAsDelivered(userId, request.getStarType());
+            if (starType == StarType.PRIDE) {
+                gameStateManager.markStarAsDelivered(userId, starType);
             }
 
-            GameProgress currentProgress = gameProgressRepository.findByUserId(userId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND,
-                            "게임 진척도를 찾을 수 없음. 사용자 ID: "+userId));
+            gameStateManager.updateDatabaseGameStage(userId, newStage);
 
-            GameProgress updatedProgress = GameProgress.builder()
-                    .progressId(currentProgress.getProgressId())
-                    .userId(userId)
-                    .currentStage(newStage)
-                    .build();
-
-            gameProgressRepository.save(updatedProgress);
-
-            log.info("비동기 별 수집 처리 완료: userId={}, starType={}", userId, request.getStarType());
+            log.info("비동기 별 수집 처리 완료: userId={}, starType={}", userId, starType);
         } catch (Exception e) {
             log.error("비동기 별 수집 처리 실패: userId={}, starType={}, error={}",
-                    userId, request.getStarType(), e.getMessage(), e);
+                    userId, starType, e.getMessage(), e);
         }
     }
 
     @Async("taskExecutor")
-    protected void processStarDeliveryAsync(UUID userId, StarActionRequest request, GameStage newStage) {
+    protected void processStarDeliveryAsync(UUID userId, StarType starType, GameStage newStage) {
         try {
-            log.info("비동기 별 전달 처리 시작: userId={}, starType={}", userId, request.getStarType());
+            log.info("비동기 별 전달 처리 시작: userId={}, starType={}", userId, starType);
 
-            Star star = starRepository.findByStarType(request.getStarType())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.STAR_NOT_FOUND,
-                            "해당 별을 찾을 수 없음: " + request.getStarType()));
+            gameStateManager.markStarAsDelivered(userId, starType);
+            gameStateManager.updateDatabaseGameStage(userId, newStage);
 
-            gameStateManager.markStarAsDelivered(userId, request.getStarType());
-
-            GameProgress currentProgress = gameProgressRepository.findByUserId(userId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND,
-                            "게임 진척도를 찾을 수 없음. 사용자 ID: "+userId));
-
-            GameProgress updatedProgress = GameProgress.builder()
-                    .progressId(currentProgress.getProgressId())
-                    .userId(userId)
-                    .currentStage(newStage)
-                    .build();
-
-            gameProgressRepository.save(updatedProgress);
-
-            log.info("비동기 별 전달 처리 완료: userId={}, starType={}", userId, request.getStarType());
+            log.info("비동기 별 전달 처리 완료: userId={}, starType={}", userId, starType);
         } catch (Exception e) {
             log.error("비동기 별 전달 처리 실패: userId={}, starType={}, error={}",
-                    userId, request.getStarType(), e.getMessage(), e);
+                    userId, starType, e.getMessage(), e);
         }
     }
-
 }

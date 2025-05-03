@@ -10,6 +10,7 @@ import com.b612.rose.repository.DialogueRepository;
 import com.b612.rose.repository.UserRepository;
 import com.b612.rose.service.service.DialogueService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,99 +30,56 @@ public class DialogueServiceImpl implements DialogueService {
 
     // 대화 유형에 따라 대화 내용 검색, npc 무관
     @Override
+    @Cacheable(value = "dialogueCache", key = "'single-' + #dialogueType + '-' + #userId")
     public DialogueResponse getDialogueByType(String dialogueType, UUID userId) {
-        String cacheKey = "single-" + dialogueType + "-" + userId; // 캐시 키 생성
-
-        // 캐시된 거 확인
-        if (dialogueCache.containsKey(cacheKey)) {
-            List<DialogueResponse> cachedList = dialogueCache.get(cacheKey);
-            if (!cachedList.isEmpty()) {
-                return cachedList.get(0);
-            }
-        }
-
-        Dialogue dialogue = dialogueRepository.findByDialogueType(dialogueType)
+        Dialogue dialogue = dialogueRepository.findByDialogueTypeWithNpc(dialogueType)
                 .orElseThrow(() -> new BusinessException(ErrorCode.DIALOGUE_NOT_FOUND,
                         "해당 대화를 찾을 수 없음: "+dialogueType));
 
-        DialogueResponse response = formatDialogueResponse(dialogue, userId); // 응답 생성
-        dialogueCache.put(cacheKey, List.of(response)); // 생성된 응답을 캐시에 저장
-
-        return response;
+        return formatDialogueResponse(dialogue, userId);
     }
 
     // 대화 유형과 npc에 따라 대화 내용 검색
     @Override
+    @Cacheable(value = "dialogueCache", key = "'single-' + #dialogueType + '-' + #npcId + '-' + #userId")
     public DialogueResponse getDialogueByTypeAndNpcId(String dialogueType, Integer npcId, UUID userId) {
-        String cacheKey = "single-" + dialogueType + "-" + npcId + "-" + userId;
-
-        if (dialogueCache.containsKey(cacheKey)) {
-            List<DialogueResponse> cachedList = dialogueCache.get(cacheKey);
-            if (!cachedList.isEmpty()) {
-                return cachedList.get(0);
-            }
-        }
-
-        Dialogue dialogue = dialogueRepository.findByDialogueTypeAndNpcId(dialogueType, npcId)
+        Dialogue dialogue = dialogueRepository.findByDialogueTypeAndNpcIdWithNpc(dialogueType, npcId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.DIALOGUE_NOT_FOUND,
                         "해당 대화를 찾을 수 없음: "+dialogueType+", npcId = "+npcId));
 
-        DialogueResponse response = formatDialogueResponse(dialogue, userId);
-        dialogueCache.put(cacheKey, List.of(response));
-
-        return response;
+        return formatDialogueResponse(dialogue, userId);
     }
 
     // 현재 게임 진척도에 맞는 대화 검색
     @Override
+    @Cacheable(value = "dialogueCache", key = "'stage-' + #currentStage.name() + '-' + #userId")
     public List<DialogueResponse> getDialoguesForCurrentStage(UUID userId, GameStage currentStage) {
-        String cacheKey = "stage-" + currentStage.name() + "-" + userId;
-
-        if (dialogueCache.containsKey(cacheKey)) {
-            return dialogueCache.get(cacheKey);
-        }
-
         String dialogueType = getDialogueTypeForStage(currentStage);
 
-        List<Dialogue> dialogues = dialogueRepository.findByDialogueTypeOrderByNpcId(dialogueType);
+        List<Dialogue> dialogues = dialogueRepository.findByDialogueTypeOrderByNpcIdWithNpc(dialogueType);
         if (dialogues.isEmpty()) {
             throw new BusinessException(ErrorCode.DIALOGUE_NOT_FOUND,
                     "해당 대화를 찾을 수 없음: "+currentStage);
         }
 
-        // 응답 데이터에 들어갈 대사 리스트 생성
-        List<DialogueResponse> responses = dialogues.stream()
+        return dialogues.stream()
                 .map(dialogue -> formatDialogueResponse(dialogue, userId))
                 .collect(Collectors.toList());
-
-        // 캐시에 저장
-        dialogueCache.put(cacheKey, responses);
-
-        return responses;
     }
 
     // 대화 유형에 따라 대화 내용 검색 (여러 개)
     @Override
+    @Cacheable(value = "dialogueCache", key = "'type-' + #dialogueType + '-' + #userId")
     public List<DialogueResponse> getDialoguesByType(String dialogueType, UUID userId) {
-        String cacheKey = "type-" + dialogueType + "-" + userId;
-
-        if (dialogueCache.containsKey(cacheKey)) {
-            return dialogueCache.get(cacheKey);
-        }
-
-        List<Dialogue> dialogues = dialogueRepository.findByDialogueTypeOrderByNpcId(dialogueType);
+        List<Dialogue> dialogues = dialogueRepository.findByDialogueTypeOrderByNpcIdWithNpc(dialogueType);
         if (dialogues.isEmpty()) {
             throw new BusinessException(ErrorCode.DIALOGUE_NOT_FOUND,
                     "해당 대화를 찾을 수 없음: "+dialogueType);
         }
 
-        List<DialogueResponse> responses = dialogues.stream()
+        return dialogues.stream()
                 .map(dialogue -> formatDialogueResponse(dialogue, userId))
                 .collect(Collectors.toList());
-
-        dialogueCache.put(cacheKey, responses);
-
-        return responses;
     }
 
     // 진척도에 맞는 대화 유형 매핑
