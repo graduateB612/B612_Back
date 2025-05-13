@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,6 +28,8 @@ public class InteractionServiceImpl implements InteractionService {
     private final DialogueService dialogueService;
     private final NpcProfileRepository npcProfileRepository;
     private final InteractionAsyncService interactionAsyncService;
+
+    private final ConcurrentHashMap<String, List<StarGuideEntry>> starGuideCache = new ConcurrentHashMap<>();
 
     // 오브젝트 상태 반환
     @Override
@@ -63,7 +66,13 @@ public class InteractionServiceImpl implements InteractionService {
                 dialogueService.getDialoguesByType("star_guide", userId) :
                 Collections.emptyList();
 
-        List<StarGuideEntry> allEntries = starGuideEntryRepository.findAllByOrderByOrderIndexAsc();
+        String cacheKey = "star-guide-entries";
+        List<StarGuideEntry> allEntries = starGuideCache.get(cacheKey);
+
+        if (allEntries == null) {
+            allEntries = starGuideEntryRepository.findAllByOrderByOrderIndexAsc();
+            starGuideCache.put(cacheKey, allEntries);
+        }
 
         // 페이징
         final int ENTRIES_PER_PAGE = 4;
