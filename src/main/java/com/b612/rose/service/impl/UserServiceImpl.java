@@ -9,6 +9,7 @@ import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.GameProgressRepository;
 import com.b612.rose.repository.UserRepository;
+import com.b612.rose.service.service.UserAsyncService;
 import com.b612.rose.service.service.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final GameProgressRepository gameProgressRepository;
+    private final UserAsyncService userAsyncService;
 
     // 사용자 생성
     @Override
@@ -34,12 +36,7 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         User savedUser = userRepository.save(newUser);
-
-        GameProgress newProgress = GameProgress.builder()
-                .userId(savedUser.getUserId())
-                .currentStage(GameStage.INTRO)
-                .build();
-        gameProgressRepository.save(newProgress);
+        userAsyncService.initializeGameStateAsync(savedUser.getUserId());
 
         return UserResponse.builder()
                 .id(savedUser.getUserId())
