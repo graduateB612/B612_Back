@@ -9,7 +9,9 @@ import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.DialogueRepository;
 import com.b612.rose.repository.UserRepository;
 import com.b612.rose.service.service.DialogueService;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -21,12 +23,51 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DialogueServiceImpl implements DialogueService {
 
     private final DialogueRepository dialogueRepository;
     private final UserRepository userRepository;
 
     private final ConcurrentHashMap<String, List<Dialogue>> dialogueCache = new ConcurrentHashMap<>();
+
+    @PostConstruct
+    public void initCache() {
+        log.info("대화 데이터 캐싱 시작");
+        try {
+            // 모든 대화 유형을 스테이지와 함께 캐싱
+            for (GameStage stage : GameStage.values()) {
+                try {
+                    String dialogueType = getDialogueTypeForStage(stage);
+                    String cacheKey = "stage-" + stage.name();
+                    List<Dialogue> dialogues = dialogueRepository.findByDialogueTypeOrderByNpcId(dialogueType);
+                    if (!dialogues.isEmpty()) {
+                        dialogueCache.put(cacheKey, dialogues);
+                        log.info("게임 스테이지 '{}' 대화 데이터 캐싱 완료: {} 항목", stage.name(), dialogues.size());
+                    }
+                } catch (BusinessException e) {
+                    // 특정 스테이지에 대한 대화가 없는 경우는 무시하고 계속 진행
+                    log.warn("게임 스테이지 '{}' 대화 데이터 캐싱 건너뜀: {}", stage.name(), e.getMessage());
+                }
+            }
+
+            // 일반적으로 많이 사용되는 대화 미리 캐싱
+            String[] commonDialogueTypes = {"star_guide", "character_profile"};
+            for (String dialogueType : commonDialogueTypes) {
+                String cacheKey = "type-" + dialogueType;
+                List<Dialogue> dialogues = dialogueRepository.findByDialogueTypeOrderByNpcId(dialogueType);
+                if (!dialogues.isEmpty()) {
+                    dialogueCache.put(cacheKey, dialogues);
+                    log.info("대화 유형 '{}' 데이터 캐싱 완료: {} 항목", dialogueType, dialogues.size());
+                }
+            }
+
+            log.info("대화 데이터 캐싱 완료: 총 {} 개 유형", dialogueCache.size());
+        } catch (Exception e) {
+            log.error("대화 데이터 캐싱 중 오류 발생: {}", e.getMessage(), e);
+        }
+    }
+
 
     // 대화 유형에 따라 대화 내용 검색, npc 무관
     @Override

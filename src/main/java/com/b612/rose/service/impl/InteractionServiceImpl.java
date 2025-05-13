@@ -9,8 +9,10 @@ import com.b612.rose.repository.*;
 import com.b612.rose.service.service.DialogueService;
 import com.b612.rose.service.service.InteractionAsyncService;
 import com.b612.rose.service.service.InteractionService;
+import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class InteractionServiceImpl implements InteractionService {
     private final InteractiveObjectRepository interactiveObjectRepository;
     private final UserInteractionRepository userInteractionRepository;
@@ -30,6 +33,20 @@ public class InteractionServiceImpl implements InteractionService {
     private final InteractionAsyncService interactionAsyncService;
 
     private final ConcurrentHashMap<String, List<StarGuideEntry>> starGuideCache = new ConcurrentHashMap<>();
+
+    // 서버 킬 때 데이터 미리 캐싱
+    @PostConstruct
+    public void initCache() {
+        log.info("별 도감 데이터 캐싱 시작");
+        try {
+            String cacheKey = "star-guide-entries";
+            List<StarGuideEntry> allEntries = starGuideEntryRepository.findAllByOrderByOrderIndexAsc();
+            starGuideCache.put(cacheKey, allEntries);
+            log.info("별 도감 데이터 캐싱 완료: {} 항목 로드됨", allEntries.size());
+        } catch (Exception e) {
+            log.error("별 도감 데이터 캐싱 중 오류 발생: {}", e.getMessage(), e);
+        }
+    }
 
     // 오브젝트 상태 반환
     @Override
