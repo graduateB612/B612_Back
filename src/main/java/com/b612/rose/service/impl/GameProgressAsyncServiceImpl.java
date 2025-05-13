@@ -40,10 +40,6 @@ public class GameProgressAsyncServiceImpl implements GameProgressAsyncService {
 
             gameProgressRepository.save(updatedProgress);
 
-            if (newStage == GameStage.GAME_START) {
-                gameStateManager.handleGameStart(userId);
-            }
-
             log.info("비동기 게임 스테이지 업데이트 완료: userId={}, stage={}", userId, newStage);
         } catch (Exception e) {
             log.error("비동기 게임 스테이지 업데이트 실패: userId={}, stage={}, error={}",
