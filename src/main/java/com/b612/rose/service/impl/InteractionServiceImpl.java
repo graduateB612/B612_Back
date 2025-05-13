@@ -7,6 +7,7 @@ import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.*;
 import com.b612.rose.service.service.DialogueService;
+import com.b612.rose.service.service.InteractionAsyncService;
 import com.b612.rose.service.service.InteractionService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class InteractionServiceImpl implements InteractionService {
     private final NpcRepository npcRepository;
     private final DialogueService dialogueService;
     private final NpcProfileRepository npcProfileRepository;
+    private final InteractionAsyncService interactionAsyncService;
 
     // 오브젝트 상태 반환
     @Override
@@ -53,7 +55,7 @@ public class InteractionServiceImpl implements InteractionService {
     @Override
     @Transactional
     public StarGuideResponse getStarGuide(UUID userId, int page, boolean includeDialogues) {
-        updateInteraction(userId, InteractiveObjectType.STAR_GUIDE);
+        interactionAsyncService.updateInteractionAsync(userId, InteractiveObjectType.STAR_GUIDE);
 
         List<DialogueResponse> dialogues = includeDialogues ?
                 dialogueService.getDialoguesByType("star_guide", userId) :
@@ -97,7 +99,7 @@ public class InteractionServiceImpl implements InteractionService {
     @Override
     @Transactional
     public CharacterProfileResponse getCharacterProfile(UUID userId) {
-        updateInteraction(userId, InteractiveObjectType.CHARACTER_PROFILE);
+        interactionAsyncService.updateInteractionAsync(userId, InteractiveObjectType.CHARACTER_PROFILE);
         List<DialogueResponse> dialogues = dialogueService.getDialoguesByType("character_profile", userId);
 
         List<Npc> npcs = npcRepository.findAll();
@@ -139,40 +141,7 @@ public class InteractionServiceImpl implements InteractionService {
                     "의뢰서는 아직 사용할 수 없습니다. userId: " + userId);
         }
 
-        updateInteraction(userId, InteractiveObjectType.REQUEST_FORM);
+        interactionAsyncService.updateInteractionAsync(userId, InteractiveObjectType.REQUEST_FORM);
         return Collections.emptyList();
-    }
-
-    // 상호작용 상태 업데이트
-    @Transactional
-    protected void updateInteraction(UUID userId, InteractiveObjectType objectType) {
-        InteractiveObject object = interactiveObjectRepository.findByObjectType(objectType)
-                .orElseThrow(() -> new BusinessException(ErrorCode.OBJECT_NOT_FOUND,
-                        "오브젝트를 찾을 수 없습니다: " + objectType));
-
-        UserInteraction interaction = userInteractionRepository
-                .findByUserIdAndObjectId(userId, object.getObjectId())
-                .orElse(null);
-
-        if (interaction == null) {
-            interaction = UserInteraction.builder()
-                    .userId(userId)
-                    .objectId(object.getObjectId())
-                    .hasInteracted(true)
-                    .isActive(true)
-                    .interactedAt(LocalDateTime.now())
-                    .build();
-        } else {
-            interaction = UserInteraction.builder()
-                    .interactionId(interaction.getInteractionId())
-                    .userId(interaction.getUserId())
-                    .objectId(interaction.getObjectId())
-                    .hasInteracted(true)
-                    .isActive(interaction.isActive())
-                    .interactedAt(LocalDateTime.now())
-                    .build();
-        }
-
-        userInteractionRepository.save(interaction);
     }
 }
