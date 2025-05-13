@@ -25,23 +25,14 @@ public class UserAsyncServiceImpl implements UserAsyncService {
     @Transactional
     @Override
     public void initializeGameStateAsync(UUID userId) {
-        try {
-            log.info("비동기 게임 상태 초기화 시작: userId={}", userId);
+            try {
+                log.info("비동기 게임 상태 초기화 시작: userId={}", userId);
+                gameStateManager.handleGameStart(userId);
 
-            // 게임 진행 상태 생성
-            GameProgress newProgress = GameProgress.builder()
-                    .userId(userId)
-                    .currentStage(GameStage.INTRO)
-                    .build();
-            gameProgressRepository.save(newProgress);
-
-            // 게임 시작 시 필요한 별, 상호작용 등 초기화
-            gameStateManager.handleGameStart(userId);
-
-            log.info("비동기 게임 상태 초기화 완료: userId={}", userId);
-        } catch (Exception e) {
-            log.error("비동기 게임 상태 초기화 실패: userId={}, error={}",
-                    userId, e.getMessage(), e);
+                log.info("비동기 게임 상태 초기화 완료: userId={}", userId);
+            } catch (Exception e) {
+                log.error("비동기 게임 상태 초기화 실패: userId={}, error={}",
+                        userId, e.getMessage(), e);
+            }
         }
     }
-}

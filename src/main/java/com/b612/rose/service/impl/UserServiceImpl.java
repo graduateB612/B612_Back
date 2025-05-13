@@ -14,6 +14,8 @@ import com.b612.rose.service.service.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -30,13 +32,29 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse createUser(UserCreateRequest request) {
+        // 1. 사용자 엔티티 생성 및 저장
         User newUser = User.builder()
                 .userName(request.getUserName())
                 .isCompleted(false)
                 .build();
 
         User savedUser = userRepository.save(newUser);
-        userAsyncService.initializeGameStateAsync(savedUser.getUserId());
+
+        // 2. 동일 트랜잭션 내에서 GameProgress 처리하여 외래 키 위반 방지
+        GameProgress newProgress = GameProgress.builder()
+                .userId(savedUser.getUserId())
+                .currentStage(GameStage.INTRO)
+                .build();
+        gameProgressRepository.save(newProgress);
+
+        // 3. 트랜잭션 커밋 후 비동기 작업 시작을 보장
+        final UUID userId = savedUser.getUserId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                userAsyncService.initializeGameStateAsync(userId);
+            }
+        });
 
         return UserResponse.builder()
                 .id(savedUser.getUserId())
