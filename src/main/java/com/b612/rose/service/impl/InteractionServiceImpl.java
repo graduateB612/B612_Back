@@ -55,7 +55,9 @@ public class InteractionServiceImpl implements InteractionService {
     @Override
     @Transactional
     public StarGuideResponse getStarGuide(UUID userId, int page, boolean includeDialogues) {
-        interactionAsyncService.updateInteractionAsync(userId, InteractiveObjectType.STAR_GUIDE);
+        if (page == 0 && includeDialogues) {
+            interactionAsyncService.updateInteractionAsync(userId, InteractiveObjectType.STAR_GUIDE);
+        }
 
         List<DialogueResponse> dialogues = includeDialogues ?
                 dialogueService.getDialoguesByType("star_guide", userId) :
