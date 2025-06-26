@@ -13,8 +13,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.BindException;
 
 import java.time.LocalDateTime;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
@@ -26,6 +29,8 @@ public class GameStateManager {
     private final GameProgressRepository gameProgressRepository;
     private final InteractiveObjectRepository interactiveObjectRepository;
     private final UserInteractionRepository userInteractionRepository;
+
+    private final Map<UUID, GameStateCache> userGameStates = new ConcurrentHashMap<>();
 
     // 게임 시작때 필요한 로직
     @Transactional
@@ -47,6 +52,28 @@ public class GameStateManager {
             collectedStarRepository.save(collectedStar);
         }
         initUserInteractions(userId);
+        userGameStates.put(userId, GameStateCache.createInitial());
+    }
+
+    // 현재 스테이지 조회: 메모리에서 찾고 없으면 db
+    public GameStage getCurrentStage(UUID userId) {
+        GameStateCache cache = userGameStates.get(userId);
+        if (cache != null) {
+            return cache.getCurrentStage();
+        }
+
+        GameStage stage = gameProgressRepository.findByUserId(userId)
+                .map(GameProgress::getCurrentStage)
+                .orElse(GameStage.INTRO);
+
+        GameStateCache newCache = GameStateCache.builder()
+                .currentStage(stage)
+                .collectedStars(new EnumMap<>(StarType.class))
+                .deliveredStars(new EnumMap<>(StarType.class))
+                .build();
+        userGameStates.put(userId, newCache);
+
+        return stage;
     }
 
     // 별 줍는 거에 따라 어떤 스테이지로 업데이트할지
@@ -72,6 +99,38 @@ public class GameStateManager {
             default -> throw new BusinessException(ErrorCode.STAR_NOT_FOUND,
                     "해당 별을 찾을 수 없습니다. " + starType);
         };
+    }
+
+    // 메모리 캐시 업데이트, db 작업은 별도로 함
+    public void updateMemoryGameState(UUID userId, StarType starType, boolean collected, boolean delivered) {
+        userGameStates.compute(userId, (key, existingCache) -> {
+            GameStateCache cache = existingCache != null ? existingCache : GameStateCache.createInitial();
+
+            Map<StarType, Boolean> collectedMap = new EnumMap<>(cache.getCollectedStars());
+            Map<StarType, Boolean> deliveredMap = new EnumMap<>(cache.getDeliveredStars());
+
+            collectedMap.put(starType, collected);
+            deliveredMap.put(starType, delivered);
+
+            return GameStateCache.builder()
+                    .currentStage(cache.getCurrentStage())
+                    .collectedStars(collectedMap)
+                    .deliveredStars(deliveredMap)
+                    .build();
+        });
+    }
+
+    // 메모리 스테이지 업데이트
+    public void updateMemoryStage(UUID userId, GameStage newStage) {
+        userGameStates.compute(userId, (key, existingCache) -> {
+            GameStateCache cache = existingCache != null ? existingCache : GameStateCache.createInitial();
+
+            return GameStateCache.builder()
+                    .currentStage(newStage)
+                    .collectedStars(cache.getCollectedStars())
+                    .deliveredStars(cache.getDeliveredStars())
+                    .build();
+        });
     }
 
     // 별 주웠다고 업데이트
@@ -101,6 +160,7 @@ public class GameStateManager {
                 .build();
 
         collectedStarRepository.save(updatedCollectedStar);
+        updateMemoryGameState(userId, starType, true, oldCollectedStar.isDelivered());
     }
 
     // 별 줬다고 업데이트
@@ -134,10 +194,25 @@ public class GameStateManager {
                 .build();
 
         collectedStarRepository.save(updatedCollectedStar);
+        updateMemoryGameState(userId, starType, oldCollectedStar.isCollected(), true);
 
         if (starType == StarType.SAD) {
             activateRequestForm(userId);
         }
+    }
+
+    @Transactional
+    public void updateDatabaseGameStage(UUID userId, GameStage newStage) {
+        GameProgress currentProgress = gameProgressRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND));
+
+        GameProgress updatedProgress = GameProgress.builder()
+                .progressId(currentProgress.getProgressId())
+                .userId(userId)
+                .currentStage(newStage)
+                .build();
+
+        gameProgressRepository.save(updatedProgress);
     }
 
     // 의뢰서 활성화
@@ -190,20 +265,9 @@ public class GameStateManager {
                 .build();
 
         userRepository.save(updatedUser);
-
-        GameProgress progress = gameProgressRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND,
-                        "사용자의 게임 진척도를 찾을 수 없습니다: " + userId));
-
-        GameProgress updatedProgress = GameProgress.builder()
-                .progressId(progress.getProgressId())
-                .userId(userId)
-                .currentStage(GameStage.GAME_COMPLETE)
-                .updatedAt(LocalDateTime.now())
-                .build();
-
-        gameProgressRepository.save(updatedProgress);
+        updateDatabaseGameStage(userId, GameStage.GAME_COMPLETE);
     }
+
 
     // 별 다 줍고 전달했는지 검증
     public boolean areAllStarsCollectedAndDelivered(UUID userId) {
@@ -216,7 +280,6 @@ public class GameStateManager {
         return stars.stream().allMatch(star -> star.isCollected() && star.isDelivered());
     }
 
-    // 상호작용 요소 초기화
     private void initUserInteractions(UUID userId) {
         List<InteractiveObject> objects = interactiveObjectRepository.findAll();
 
