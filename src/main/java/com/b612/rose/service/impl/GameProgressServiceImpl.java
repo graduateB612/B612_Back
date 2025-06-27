@@ -18,6 +18,7 @@ import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.exception.ExceptionUtils;
 import com.b612.rose.repository.*;
 import com.b612.rose.service.service.*;
+import com.b612.rose.utils.GameCacheManager;
 import com.b612.rose.utils.GameStateManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class GameProgressServiceImpl implements GameProgressService {
     private final StarRepository starRepository;
     private final DialogueService dialogueService;
     private final GameStateManager gameStateManager;
+    private final GameCacheManager gameCacheManager;
     private final EmailAsyncService emailAsyncService;
     private final GameProgressAsyncService gameProgressAsyncService;
 
@@ -49,7 +51,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 gameProgressRepository.findByUserId(userId), userId);
 
         GameStage newStage = request.getNewStage();
-        gameStateManager.updateMemoryStage(userId, newStage);
+        gameCacheManager.updateStageInCache(userId, newStage);
         List<DialogueResponse> dialogues = dialogueService.getDialoguesForCurrentStage(userId, newStage);
 
         GameStateResponse response = GameStateResponse.builder()
@@ -69,8 +71,8 @@ public class GameProgressServiceImpl implements GameProgressService {
         StarType starType = request.getStarType();
         GameStage newStage = gameStateManager.getCollectStageForStar(starType);
 
-        gameStateManager.updateMemoryStage(userId, newStage);
-        gameStateManager.updateMemoryGameState(userId, starType, true, starType == StarType.PRIDE);
+        gameCacheManager.updateStageInCache(userId, newStage);
+        gameCacheManager.updateStarStateInCache(userId, starType, true, starType == StarType.PRIDE);
 
         List<DialogueResponse> dialogues = dialogueService.getDialoguesForCurrentStage(userId, newStage);
 
@@ -92,8 +94,8 @@ public class GameProgressServiceImpl implements GameProgressService {
         StarType starType = request.getStarType();
         GameStage newStage = gameStateManager.getDeliverStageForStar(starType);
 
-        gameStateManager.updateMemoryStage(userId, newStage);
-        gameStateManager.updateMemoryGameState(userId, starType, true, true);
+        gameCacheManager.updateStageInCache(userId, newStage);
+        gameCacheManager.updateStarStateInCache(userId, starType, true, true);
 
         List<DialogueResponse> dialogues = dialogueService.getDialoguesForCurrentStage(userId, newStage);
 
@@ -143,7 +145,7 @@ public class GameProgressServiceImpl implements GameProgressService {
         log.info("게임 완료 처리 - 사용자: {}, 이메일: {}, 선택한 NPC: {}",
                 userId, request.getEmail(), request.getSelectedNpc());
 
-        gameStateManager.updateMemoryStage(userId, GameStage.GAME_COMPLETE);
+        gameCacheManager.updateStageInCache(userId, GameStage.GAME_COMPLETE);
         gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
         GameStateResponse response = getCurrentGameState(userId);
 
