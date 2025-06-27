@@ -6,6 +6,7 @@ import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
+import com.b612.rose.exception.ExceptionUtils;
 import com.b612.rose.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -35,9 +36,7 @@ public class GameStateManager {
     // 게임 시작때 필요한 로직
     @Transactional
     public void handleGameStart(UUID userId) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND,
-                        "사용자를 찾을 수 없습니다. userId: " + userId));
+        ExceptionUtils.getUserOrThrow(userRepository.findById(userId), userId);
 
         List<Star> allStars = starRepository.findAll();
 
@@ -97,7 +96,7 @@ public class GameStateManager {
             case LONELY -> GameStage.DELIVER_LONELY;
             case SAD -> GameStage.DELIVER_SAD;
             default -> throw new BusinessException(ErrorCode.STAR_NOT_FOUND,
-                    "해당 별을 찾을 수 없습니다. " + starType);
+                    "지원되지 않는 별 타입입니다. starType: " + starType);
         };
     }
 
@@ -136,17 +135,15 @@ public class GameStateManager {
     // 별 주웠다고 업데이트
     @Transactional
     public void markStarAsCollected(UUID userId, StarType starType) {
-        Star star = starRepository.findByStarType(starType)
-                .orElseThrow(() -> new BusinessException(ErrorCode.STAR_NOT_FOUND,
-                        "해당 별을 찾을 수 없습니다. " + starType));
+        Star star = ExceptionUtils.getStarOrThrow(starRepository.findByStarType(starType), starType);
 
         CollectedStar oldCollectedStar = collectedStarRepository.findByUserIdAndStarStarType(userId, starType)
-                .orElseThrow(() ->new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
                         "수집된 별을 찾을 수 없습니다. userId : " + userId + " 별 종류: " + starType));
 
-        if (oldCollectedStar.isCollected() && starType != StarType.PRIDE) {
-            throw new BusinessException(ErrorCode.STAR_ALREADY_COLLECTED,
-                    "이 별은 이미 수집되었습니다. : " + starType);
+        // PRIDE 별은 재수집 가능하므로 검증에서 제외
+        if (starType != StarType.PRIDE) {
+            ExceptionUtils.validateStarNotCollected(oldCollectedStar.isCollected(), starType);
         }
 
         CollectedStar updatedCollectedStar = CollectedStar.builder()
@@ -166,22 +163,17 @@ public class GameStateManager {
     // 별 줬다고 업데이트
     @Transactional
     public void markStarAsDelivered(UUID userId, StarType starType) {
-        Star star = starRepository.findByStarType(starType)
-                .orElseThrow(() -> new BusinessException(ErrorCode.STAR_NOT_FOUND,
-                        "해당 타입의 별을 찾을 수 없습니다. :  " + starType));
+        Star star = ExceptionUtils.getStarOrThrow(starRepository.findByStarType(starType), starType);
 
         CollectedStar oldCollectedStar = collectedStarRepository.findByUserIdAndStarStarType(userId, starType)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
                         "사용자에게서 수집된 별을 찾을 수 없습니다. : " + userId + " 별의 종류: " + starType));
 
-        if (!oldCollectedStar.isCollected()) {
-            throw new BusinessException(ErrorCode.STAR_NOT_COLLECTED,
-                    "별 전달을 위해선 먼저 수집해야합니다. " + starType);
-        }
+        ExceptionUtils.validateStarCollected(oldCollectedStar.isCollected(), starType);
 
-        if (oldCollectedStar.isDelivered() && starType != StarType.PRIDE) {
-            throw new BusinessException(ErrorCode.STAR_ALREADY_COLLECTED,
-                    "이미 전달된 별입니다. " + starType);
+        // PRIDE 별은 재전달 가능하므로 검증에서 제외
+        if (starType != StarType.PRIDE) {
+            ExceptionUtils.validateStarNotDelivered(oldCollectedStar.isDelivered(), starType);
         }
         CollectedStar updatedCollectedStar = CollectedStar.builder()
                 .collectionId(oldCollectedStar.getCollectionId())
@@ -203,8 +195,8 @@ public class GameStateManager {
 
     @Transactional
     public void updateDatabaseGameStage(UUID userId, GameStage newStage) {
-        GameProgress currentProgress = gameProgressRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND));
+        GameProgress currentProgress = ExceptionUtils.getGameProgressOrThrow(
+                gameProgressRepository.findByUserId(userId), userId);
 
         GameProgress updatedProgress = GameProgress.builder()
                 .progressId(currentProgress.getProgressId())
@@ -218,10 +210,9 @@ public class GameStateManager {
     // 의뢰서 활성화
     @Transactional
     protected void activateRequestForm(UUID userId) {
-        InteractiveObject requestFormObject = interactiveObjectRepository
-                .findByObjectType(InteractiveObjectType.REQUEST_FORM)
-                .orElseThrow(() -> new BusinessException(ErrorCode.OBJECT_NOT_FOUND,
-                        "요청 오브젝트를 찾을 수 없습니다."));
+        InteractiveObject requestFormObject = ExceptionUtils.getInteractiveObjectOrThrow(
+                interactiveObjectRepository.findByObjectType(InteractiveObjectType.REQUEST_FORM),
+                "REQUEST_FORM");
 
         UserInteraction interaction = userInteractionRepository
                 .findByUserIdAndObjectId(userId, requestFormObject.getObjectId())
@@ -251,9 +242,7 @@ public class GameStateManager {
     // 게임 완료 처리
     @Transactional
     public void completeGame(UUID userId, String email, String concern, String selectedNpc) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND,
-                        "사용자를 찾을 수 없습니다: " + userId));
+        User user = ExceptionUtils.getUserOrThrow(userRepository.findById(userId), userId);
 
         User updatedUser = User.builder()
                 .userId(user.getUserId())

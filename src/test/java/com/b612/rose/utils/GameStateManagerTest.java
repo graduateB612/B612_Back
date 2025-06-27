@@ -225,7 +225,7 @@ class GameStateManagerTest {
         // When & Then
         assertThatThrownBy(() -> gameStateManager.markStarAsCollected(testUserId, StarType.ENVY))
                 .isInstanceOf(BusinessException.class)
-                .hasMessage("이 별은 이미 수집되었습니다. : " + StarType.ENVY);
+                .hasMessage("이미 수집된 별입니다. starType: " + StarType.ENVY);
     }
 
     @Test
@@ -237,7 +237,7 @@ class GameStateManagerTest {
         // When & Then
         assertThatThrownBy(() -> gameStateManager.markStarAsCollected(testUserId, StarType.PRIDE))
                 .isInstanceOf(BusinessException.class)
-                .hasMessage("해당 별을 찾을 수 없습니다. " + StarType.PRIDE);
+                .hasMessage("해당 별을 찾을 수 없습니다. starType: " + StarType.PRIDE);
     }
 
     @Test
@@ -274,7 +274,7 @@ class GameStateManagerTest {
         // When & Then
         assertThatThrownBy(() -> gameStateManager.markStarAsDelivered(testUserId, StarType.PRIDE))
                 .isInstanceOf(BusinessException.class)
-                .hasMessage("별 전달을 위해선 먼저 수집해야합니다. " + StarType.PRIDE);
+                .hasMessage("별을 먼저 수집해야 합니다. starType: " + StarType.PRIDE);
     }
 
     @Test

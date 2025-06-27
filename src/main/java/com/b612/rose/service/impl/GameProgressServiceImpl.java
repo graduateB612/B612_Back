@@ -15,6 +15,7 @@ import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
+import com.b612.rose.exception.ExceptionUtils;
 import com.b612.rose.repository.*;
 import com.b612.rose.service.service.*;
 import com.b612.rose.utils.GameStateManager;
@@ -44,9 +45,8 @@ public class GameProgressServiceImpl implements GameProgressService {
     @Override
     @Transactional
     public GameStateResponse updateGameStage(UUID userId, GameStageUpdateRequest request) {
-        GameProgress currentProgress = gameProgressRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.GAME_PROGRESS_NOT_FOUND,
-                        "게임 진척도를 찾을 수 없음. 사용자 ID: " + userId));
+        GameProgress currentProgress = ExceptionUtils.getGameProgressOrThrow(
+                gameProgressRepository.findByUserId(userId), userId);
 
         GameStage newStage = request.getNewStage();
         gameStateManager.updateMemoryStage(userId, newStage);
@@ -135,23 +135,10 @@ public class GameProgressServiceImpl implements GameProgressService {
     @Override
     @Transactional
     public GameStateResponse completeGameAndSendEmail(UUID userId, EmailRequest request) {
-        if (!gameStateManager.areAllStarsCollectedAndDelivered(userId)) {
-            log.error("모든 별이 수집 및 전달되지 않았습니다. userId: {}", userId);
-            throw new BusinessException(ErrorCode.STARS_NOT_COMPLETED,
-                    "모든 별이 수집 및 전달되지 않았습니다.");
-        }
-
-        if (request.getEmail() == null || request.getEmail().isBlank()) {
-            log.error("이메일 주소가 비어있습니다. userId: {}", userId);
-            throw new BusinessException(ErrorCode.EMAIL_REQUIRED,
-                    "이메일 주소가 필요합니다.");
-        }
-
-        if (request.getSelectedNpc() == null || request.getSelectedNpc().isBlank()) {
-            log.error("선택된 NPC가 없습니다. userId: {}", userId);
-            throw new BusinessException(ErrorCode.NPC_SELECTION_REQUIRED,
-                    "NPC를 선택해야 합니다.");
-        }
+        ExceptionUtils.validateAllStarsCompleted(
+                gameStateManager.areAllStarsCollectedAndDelivered(userId));
+        ExceptionUtils.validateEmailProvided(request.getEmail());
+        ExceptionUtils.validateNpcSelected(request.getSelectedNpc());
 
         log.info("게임 완료 처리 - 사용자: {}, 이메일: {}, 선택한 NPC: {}",
                 userId, request.getEmail(), request.getSelectedNpc());
