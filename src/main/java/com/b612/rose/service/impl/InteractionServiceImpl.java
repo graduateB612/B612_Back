@@ -7,7 +7,7 @@ import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.*;
 import com.b612.rose.service.service.DialogueService;
-import com.b612.rose.service.service.InteractionAsyncService;
+import com.b612.rose.service.service.AsyncTaskService;
 import com.b612.rose.service.service.InteractionService;
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
@@ -30,7 +30,7 @@ public class InteractionServiceImpl implements InteractionService {
     private final NpcRepository npcRepository;
     private final DialogueService dialogueService;
     private final NpcProfileRepository npcProfileRepository;
-    private final InteractionAsyncService interactionAsyncService;
+    private final AsyncTaskService asyncTaskService;
 
     private final ConcurrentHashMap<String, List<StarGuideEntry>> starGuideCache = new ConcurrentHashMap<>();
 
@@ -76,7 +76,7 @@ public class InteractionServiceImpl implements InteractionService {
     @Transactional
     public StarGuideResponse getStarGuide(UUID userId, int page, boolean includeDialogues) {
         if (page == 0 && includeDialogues) {
-            interactionAsyncService.updateInteractionAsync(userId, InteractiveObjectType.STAR_GUIDE);
+            asyncTaskService.updateInteractionAsync(userId, InteractiveObjectType.STAR_GUIDE);
         }
 
         List<DialogueResponse> dialogues = includeDialogues ?
@@ -127,7 +127,7 @@ public class InteractionServiceImpl implements InteractionService {
     @Override
     @Transactional
     public CharacterProfileResponse getCharacterProfile(UUID userId) {
-        interactionAsyncService.updateInteractionAsync(userId, InteractiveObjectType.CHARACTER_PROFILE);
+        asyncTaskService.updateInteractionAsync(userId, InteractiveObjectType.CHARACTER_PROFILE);
         List<DialogueResponse> dialogues = dialogueService.getDialoguesByType("character_profile", userId);
 
         List<Npc> npcs = npcRepository.findAll();
@@ -169,7 +169,7 @@ public class InteractionServiceImpl implements InteractionService {
                     "의뢰서는 아직 사용할 수 없습니다. userId: " + userId);
         }
 
-        interactionAsyncService.updateInteractionAsync(userId, InteractiveObjectType.REQUEST_FORM);
+        asyncTaskService.updateInteractionAsync(userId, InteractiveObjectType.REQUEST_FORM);
         return Collections.emptyList();
     }
 }

@@ -7,6 +7,8 @@ import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.*;
+import com.b612.rose.service.service.GameStageService;
+import com.b612.rose.service.service.StarCollectionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,7 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("GameStateManager 테스트")
+@DisplayName("GameStateManager Facade 테스트")
 class GameStateManagerTest {
 
     @Mock
@@ -36,11 +38,13 @@ class GameStateManagerTest {
     @Mock
     private CollectedStarRepository collectedStarRepository;
     @Mock
-    private GameProgressRepository gameProgressRepository;
-    @Mock
     private InteractiveObjectRepository interactiveObjectRepository;
     @Mock
     private UserInteractionRepository userInteractionRepository;
+    @Mock
+    private GameStageService gameStageService;
+    @Mock
+    private StarCollectionService starCollectionService;
 
     @InjectMocks
     private GameStateManager gameStateManager;
@@ -48,8 +52,6 @@ class GameStateManagerTest {
     private UUID testUserId;
     private User testUser;
     private Star testStar;
-    private CollectedStar testCollectedStar;
-    private GameProgress testGameProgress;
 
     @BeforeEach
     void setUp() {
@@ -64,20 +66,6 @@ class GameStateManagerTest {
                 .starId(1)
                 .starType(StarType.PRIDE)
                 .npcId(1)
-                .build();
-
-        testCollectedStar = CollectedStar.builder()
-                .collectionId(1)
-                .userId(testUserId)
-                .starId(testStar.getStarId())
-                .collected(false)
-                .delivered(false)
-                .build();
-
-        testGameProgress = GameProgress.builder()
-                .progressId(1)
-                .userId(testUserId)
-                .currentStage(GameStage.INTRO)
                 .build();
     }
 
@@ -110,275 +98,88 @@ class GameStateManagerTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 사용자로 게임 시작 시 예외 발생")
-    void handleGameStart_UserNotFound_ThrowsException() {
+    @DisplayName("현재 스테이지 조회 - 서비스 위임")
+    void getCurrentStage_DelegatesToService() {
         // Given
-        when(userRepository.findById(testUserId)).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThatThrownBy(() -> gameStateManager.handleGameStart(testUserId))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage("사용자를 찾을 수 없습니다. userId: " + testUserId);
-    }
-
-    @Test
-    @DisplayName("현재 스테이지 조회 - 메모리 캐시에서 조회")
-    void getCurrentStage_FromMemoryCache() {
-        // Given
-        gameStateManager.updateMemoryStage(testUserId, GameStage.COLLECT_PRIDE);
+        when(gameStageService.getCurrentStage(testUserId)).thenReturn(GameStage.COLLECT_PRIDE);
 
         // When
-        GameStage currentStage = gameStateManager.getCurrentStage(testUserId);
+        GameStage result = gameStateManager.getCurrentStage(testUserId);
 
         // Then
-        assertThat(currentStage).isEqualTo(GameStage.COLLECT_PRIDE);
-        verify(gameProgressRepository, never()).findByUserId(any());
+        assertThat(result).isEqualTo(GameStage.COLLECT_PRIDE);
+        verify(gameStageService).getCurrentStage(testUserId);
     }
 
     @Test
-    @DisplayName("현재 스테이지 조회 - DB에서 조회 후 캐시 생성")
-    void getCurrentStage_FromDatabase() {
+    @DisplayName("별 수집 스테이지 조회 - 서비스 위임")
+    void getCollectStageForStar_DelegatesToService() {
         // Given
-        when(gameProgressRepository.findByUserId(testUserId))
-                .thenReturn(Optional.of(testGameProgress));
+        when(gameStageService.getCollectStageForStar(StarType.PRIDE)).thenReturn(GameStage.COLLECT_PRIDE);
 
         // When
-        GameStage currentStage = gameStateManager.getCurrentStage(testUserId);
+        GameStage result = gameStateManager.getCollectStageForStar(StarType.PRIDE);
 
         // Then
-        assertThat(currentStage).isEqualTo(GameStage.INTRO);
-        verify(gameProgressRepository).findByUserId(testUserId);
+        assertThat(result).isEqualTo(GameStage.COLLECT_PRIDE);
+        verify(gameStageService).getCollectStageForStar(StarType.PRIDE);
     }
 
     @Test
-    @DisplayName("별 타입에 따른 수집 스테이지 매핑")
-    void getCollectStageForStar() {
-        // When & Then
-        assertThat(gameStateManager.getCollectStageForStar(StarType.PRIDE))
-                .isEqualTo(GameStage.COLLECT_PRIDE);
-        assertThat(gameStateManager.getCollectStageForStar(StarType.ENVY))
-                .isEqualTo(GameStage.COLLECT_ENVY);
-        assertThat(gameStateManager.getCollectStageForStar(StarType.LONELY))
-                .isEqualTo(GameStage.COLLECT_LONELY);
-        assertThat(gameStateManager.getCollectStageForStar(StarType.SAD))
-                .isEqualTo(GameStage.COLLECT_SAD);
-    }
-
-    @Test
-    @DisplayName("별 타입에 따른 전달 스테이지 매핑")
-    void getDeliverStageForStar() {
-        // When & Then
-        assertThat(gameStateManager.getDeliverStageForStar(StarType.PRIDE))
-                .isEqualTo(GameStage.COLLECT_ENVY);
-        assertThat(gameStateManager.getDeliverStageForStar(StarType.ENVY))
-                .isEqualTo(GameStage.DELIVER_ENVY);
-        assertThat(gameStateManager.getDeliverStageForStar(StarType.LONELY))
-                .isEqualTo(GameStage.DELIVER_LONELY);
-        assertThat(gameStateManager.getDeliverStageForStar(StarType.SAD))
-                .isEqualTo(GameStage.DELIVER_SAD);
-    }
-
-    @Test
-    @DisplayName("메모리 게임 상태 업데이트")
-    void updateMemoryGameState() {
-        // When
-        gameStateManager.updateMemoryGameState(testUserId, StarType.PRIDE, true, false);
-
-        // Then
-        // 메모리 상태 변경 검증은 private 맵이므로 간접적으로 확인
-        // 실제로는 다른 메서드를 통해 검증 가능
-        assertThatCode(() -> gameStateManager.updateMemoryGameState(testUserId, StarType.PRIDE, true, false))
-                .doesNotThrowAnyException();
-    }
-
-    @Test
-    @DisplayName("별 수집 성공")
-    void markStarAsCollected_Success() {
+    @DisplayName("별 전달 스테이지 조회 - 서비스 위임")
+    void getDeliverStageForStar_DelegatesToService() {
         // Given
-        when(starRepository.findByStarType(StarType.PRIDE)).thenReturn(Optional.of(testStar));
-        when(collectedStarRepository.findByUserIdAndStarStarType(testUserId, StarType.PRIDE))
-                .thenReturn(Optional.of(testCollectedStar));
+        when(gameStageService.getDeliverStageForStar(StarType.PRIDE)).thenReturn(GameStage.COLLECT_ENVY);
 
+        // When
+        GameStage result = gameStateManager.getDeliverStageForStar(StarType.PRIDE);
+
+        // Then
+        assertThat(result).isEqualTo(GameStage.COLLECT_ENVY);
+        verify(gameStageService).getDeliverStageForStar(StarType.PRIDE);
+    }
+
+    @Test
+    @DisplayName("별 수집 처리 - 서비스 위임")
+    void markStarAsCollected_DelegatesToService() {
         // When
         gameStateManager.markStarAsCollected(testUserId, StarType.PRIDE);
 
         // Then
-        verify(collectedStarRepository).save(any(CollectedStar.class));
+        verify(starCollectionService).markStarAsCollected(testUserId, StarType.PRIDE);
     }
 
     @Test
-    @DisplayName("이미 수집된 별 재수집 시 예외 발생")
-    void markStarAsCollected_AlreadyCollected_ThrowsException() {
-        // Given
-        CollectedStar alreadyCollectedStar = CollectedStar.builder()
-                .collectionId(1)
-                .userId(testUserId)
-                .starId(testStar.getStarId())
-                .collected(true)
-                .delivered(false)
-                .build();
-
-        when(starRepository.findByStarType(StarType.ENVY)).thenReturn(Optional.of(testStar));
-        when(collectedStarRepository.findByUserIdAndStarStarType(testUserId, StarType.ENVY))
-                .thenReturn(Optional.of(alreadyCollectedStar));
-
-        // When & Then
-        assertThatThrownBy(() -> gameStateManager.markStarAsCollected(testUserId, StarType.ENVY))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage("이미 수집된 별입니다. starType: " + StarType.ENVY);
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 별 수집 시 예외 발생")
-    void markStarAsCollected_StarNotFound_ThrowsException() {
-        // Given
-        when(starRepository.findByStarType(StarType.PRIDE)).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThatThrownBy(() -> gameStateManager.markStarAsCollected(testUserId, StarType.PRIDE))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage("해당 별을 찾을 수 없습니다. starType: " + StarType.PRIDE);
-    }
-
-    @Test
-    @DisplayName("별 전달 성공")
-    void markStarAsDelivered_Success() {
-        // Given
-        CollectedStar collectedStar = CollectedStar.builder()
-                .collectionId(1)
-                .userId(testUserId)
-                .starId(testStar.getStarId())
-                .collected(true)
-                .delivered(false)
-                .build();
-
-        when(starRepository.findByStarType(StarType.PRIDE)).thenReturn(Optional.of(testStar));
-        when(collectedStarRepository.findByUserIdAndStarStarType(testUserId, StarType.PRIDE))
-                .thenReturn(Optional.of(collectedStar));
-
+    @DisplayName("별 전달 처리 - 서비스 위임")
+    void markStarAsDelivered_DelegatesToService() {
         // When
         gameStateManager.markStarAsDelivered(testUserId, StarType.PRIDE);
 
         // Then
-        verify(collectedStarRepository).save(any(CollectedStar.class));
+        verify(starCollectionService).markStarAsDelivered(testUserId, StarType.PRIDE);
     }
 
     @Test
-    @DisplayName("수집되지 않은 별 전달 시 예외 발생")
-    void markStarAsDelivered_NotCollected_ThrowsException() {
+    @DisplayName("모든 별 수집/전달 여부 확인 - 서비스 위임")
+    void areAllStarsCollectedAndDelivered_DelegatesToService() {
         // Given
-        when(starRepository.findByStarType(StarType.PRIDE)).thenReturn(Optional.of(testStar));
-        when(collectedStarRepository.findByUserIdAndStarStarType(testUserId, StarType.PRIDE))
-                .thenReturn(Optional.of(testCollectedStar));
-
-        // When & Then
-        assertThatThrownBy(() -> gameStateManager.markStarAsDelivered(testUserId, StarType.PRIDE))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage("별을 먼저 수집해야 합니다. starType: " + StarType.PRIDE);
-    }
-
-    @Test
-    @DisplayName("SAD 별 전달 시 의뢰서 활성화")
-    void markStarAsDelivered_SadStar_ActivatesRequestForm() {
-        // Given
-        CollectedStar collectedStar = CollectedStar.builder()
-                .collectionId(1)
-                .userId(testUserId)
-                .starId(testStar.getStarId())
-                .collected(true)
-                .delivered(false)
-                .build();
-        
-        InteractiveObject requestForm = InteractiveObject.builder()
-                .objectId(1)
-                .objectType(InteractiveObjectType.REQUEST_FORM)
-                .build();
-
-        when(starRepository.findByStarType(StarType.SAD)).thenReturn(Optional.of(testStar));
-        when(collectedStarRepository.findByUserIdAndStarStarType(testUserId, StarType.SAD))
-                .thenReturn(Optional.of(collectedStar));
-        when(interactiveObjectRepository.findByObjectType(InteractiveObjectType.REQUEST_FORM))
-                .thenReturn(Optional.of(requestForm));
-        when(userInteractionRepository.findByUserIdAndObjectId(testUserId, requestForm.getObjectId()))
-                .thenReturn(Optional.empty());
-
-        // When
-        gameStateManager.markStarAsDelivered(testUserId, StarType.SAD);
-
-        // Then
-        verify(collectedStarRepository).save(any(CollectedStar.class)); // markStarAsDelivered
-        verify(userInteractionRepository).save(any(UserInteraction.class)); // activateRequestForm
-    }
-
-    @Test
-    @DisplayName("게임 완료 처리")
-    void completeGame_Success() {
-        // Given
-        String email = "test@example.com";
-        String concern = "Test concern";
-        String selectedNpc = "Fox";
-
-        when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
-        when(gameProgressRepository.findByUserId(testUserId)).thenReturn(Optional.of(testGameProgress));
-
-        // When
-        gameStateManager.completeGame(testUserId, email, concern, selectedNpc);
-
-        // Then
-        verify(userRepository).save(any(User.class));
-        verify(gameProgressRepository).save(any(GameProgress.class));
-    }
-
-    @Test
-    @DisplayName("모든 별 수집 및 전달 완료 검증 - 성공")
-    void areAllStarsCollectedAndDelivered_AllCompleted_ReturnsTrue() {
-        // Given
-        List<CollectedStar> allCompletedStars = Arrays.asList(
-                CollectedStar.builder().collected(true).delivered(true).build(),
-                CollectedStar.builder().collected(true).delivered(true).build(),
-                CollectedStar.builder().collected(true).delivered(true).build(),
-                CollectedStar.builder().collected(true).delivered(true).build()
-        );
-
-        when(collectedStarRepository.findAllByUserId(testUserId)).thenReturn(allCompletedStars);
+        when(starCollectionService.areAllStarsCollectedAndDelivered(testUserId)).thenReturn(true);
 
         // When
         boolean result = gameStateManager.areAllStarsCollectedAndDelivered(testUserId);
 
         // Then
         assertThat(result).isTrue();
+        verify(starCollectionService).areAllStarsCollectedAndDelivered(testUserId);
     }
 
     @Test
-    @DisplayName("모든 별 수집 및 전달 완료 검증 - 실패")
-    void areAllStarsCollectedAndDelivered_NotAllCompleted_ReturnsFalse() {
-        // Given
-        List<CollectedStar> incompleteStars = Arrays.asList(
-                CollectedStar.builder().collected(true).delivered(true).build(),
-                CollectedStar.builder().collected(true).delivered(false).build(), // 전달 안됨
-                CollectedStar.builder().collected(false).delivered(false).build(), // 수집 안됨
-                CollectedStar.builder().collected(true).delivered(true).build()
-        );
-
-        when(collectedStarRepository.findAllByUserId(testUserId)).thenReturn(incompleteStars);
-
+    @DisplayName("데이터베이스 스테이지 업데이트 - 서비스 위임")
+    void updateDatabaseGameStage_DelegatesToService() {
         // When
-        boolean result = gameStateManager.areAllStarsCollectedAndDelivered(testUserId);
+        gameStateManager.updateDatabaseGameStage(testUserId, GameStage.COLLECT_PRIDE);
 
         // Then
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("빈 별 리스트일 때 검증 실패")
-    void areAllStarsCollectedAndDelivered_EmptyList_ReturnsFalse() {
-        // Given
-        when(collectedStarRepository.findAllByUserId(testUserId)).thenReturn(Arrays.asList());
-
-        // When
-        boolean result = gameStateManager.areAllStarsCollectedAndDelivered(testUserId);
-
-        // Then
-        assertThat(result).isFalse();
+        verify(gameStageService).updateDatabaseGameStage(testUserId, GameStage.COLLECT_PRIDE);
     }
 } 

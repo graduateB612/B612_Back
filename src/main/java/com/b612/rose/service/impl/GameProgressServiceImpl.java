@@ -40,8 +40,7 @@ public class GameProgressServiceImpl implements GameProgressService {
     private final DialogueService dialogueService;
     private final GameStateManager gameStateManager;
     private final GameCacheManager gameCacheManager;
-    private final EmailAsyncService emailAsyncService;
-    private final GameProgressAsyncService gameProgressAsyncService;
+    private final AsyncTaskService asyncTaskService;
 
     // 게임 진척도 업데이트
     @Override
@@ -60,7 +59,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .dialogues(dialogues)
                 .build();
 
-        gameProgressAsyncService.updateGameStageAsync(userId, currentProgress.getProgressId(), newStage);
+        asyncTaskService.updateGameStageAsync(userId, currentProgress.getProgressId(), newStage);
         return response;
     }
 
@@ -82,7 +81,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .dialogues(dialogues)
                 .build();
 
-        gameProgressAsyncService.processStarCollectionAsync(userId, request, newStage);
+        asyncTaskService.processStarCollectionAsync(userId, request, newStage);
 
         return immediateResponse;
     }
@@ -105,7 +104,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .dialogues(dialogues)
                 .build();
 
-        gameProgressAsyncService.processStarDeliveryAsync(userId, request, newStage);
+        asyncTaskService.processStarDeliveryAsync(userId, request, newStage);
 
         return immediateResponse;
     }
@@ -133,7 +132,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .build();
     }
 
-    // 게임 완료 처리, 이메일 전송 처리 -> 로직 꾸진 거 보니 고쳐야할듯
+    // 게임 완료 처리, 이메일 전송 처리
     @Override
     @Transactional
     public GameStateResponse completeGameAndSendEmail(UUID userId, EmailRequest request) {
@@ -149,7 +148,7 @@ public class GameProgressServiceImpl implements GameProgressService {
         gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
         GameStateResponse response = getCurrentGameState(userId);
 
-        emailAsyncService.sendEmailAsync(userId, request);
+        asyncTaskService.sendEmailAsync(userId, request);
 
         return response;
     }
