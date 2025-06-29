@@ -10,7 +10,7 @@ import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.GameProgressRepository;
 import com.b612.rose.repository.UserRepository;
 import com.b612.rose.service.impl.UserServiceImpl;
-import com.b612.rose.service.service.UserAsyncService;
+import com.b612.rose.service.service.AsyncTaskService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ class UserServiceImplTest {
     @Mock
     private GameProgressRepository gameProgressRepository;
     @Mock
-    private UserAsyncService userAsyncService;
+    private AsyncTaskService asyncTaskService;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -91,6 +91,7 @@ class UserServiceImplTest {
         
         verify(userRepository).save(any(User.class));
         verify(gameProgressRepository).save(any(GameProgress.class));
+        verify(asyncTaskService).initializeGameStateAsync(any(UUID.class));
     }
 
     @Test

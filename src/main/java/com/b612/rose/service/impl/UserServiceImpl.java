@@ -10,7 +10,7 @@ import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.exception.ExceptionUtils;
 import com.b612.rose.repository.GameProgressRepository;
 import com.b612.rose.repository.UserRepository;
-import com.b612.rose.service.service.UserAsyncService;
+import com.b612.rose.service.service.AsyncTaskService;
 import com.b612.rose.service.service.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final GameProgressRepository gameProgressRepository;
-    private final UserAsyncService userAsyncService;
+    private final AsyncTaskService asyncTaskService;
 
     // 사용자 생성
     @Override
@@ -50,12 +50,17 @@ public class UserServiceImpl implements UserService {
 
         // 3. 트랜잭션 커밋 후 비동기 작업 시작을 보장
         final UUID userId = savedUser.getUserId();
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                userAsyncService.initializeGameStateAsync(userId);
+                    asyncTaskService.initializeGameStateAsync(userId);
             }
         });
+        } else {
+            // 테스트 환경에서는 즉시 실행
+            asyncTaskService.initializeGameStateAsync(userId);
+        }
 
         return UserResponse.builder()
                 .id(savedUser.getUserId())

@@ -18,6 +18,7 @@ import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.exception.ExceptionUtils;
 import com.b612.rose.repository.*;
 import com.b612.rose.service.service.*;
+import com.b612.rose.service.service.CacheService;
 import com.b612.rose.utils.GameStateManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -38,8 +39,8 @@ public class GameProgressServiceImpl implements GameProgressService {
     private final StarRepository starRepository;
     private final DialogueService dialogueService;
     private final GameStateManager gameStateManager;
-    private final EmailAsyncService emailAsyncService;
-    private final GameProgressAsyncService gameProgressAsyncService;
+    private final CacheService cacheService;
+    private final AsyncTaskService asyncTaskService;
 
     // 게임 진척도 업데이트
     @Override
@@ -49,7 +50,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 gameProgressRepository.findByUserId(userId), userId);
 
         GameStage newStage = request.getNewStage();
-        gameStateManager.updateMemoryStage(userId, newStage);
+        cacheService.updateStarState(userId, null, false, false); // 즉시 응답용 임시 캐시 업데이트
         List<DialogueResponse> dialogues = dialogueService.getDialoguesForCurrentStage(userId, newStage);
 
         GameStateResponse response = GameStateResponse.builder()
@@ -58,7 +59,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .dialogues(dialogues)
                 .build();
 
-        gameProgressAsyncService.updateGameStageAsync(userId, currentProgress.getProgressId(), newStage);
+        asyncTaskService.updateGameStageAsync(userId, currentProgress.getProgressId(), newStage);
         return response;
     }
 
@@ -69,8 +70,7 @@ public class GameProgressServiceImpl implements GameProgressService {
         StarType starType = request.getStarType();
         GameStage newStage = gameStateManager.getCollectStageForStar(starType);
 
-        gameStateManager.updateMemoryStage(userId, newStage);
-        gameStateManager.updateMemoryGameState(userId, starType, true, starType == StarType.PRIDE);
+        cacheService.updateStarState(userId, starType, true, starType == StarType.PRIDE);
 
         List<DialogueResponse> dialogues = dialogueService.getDialoguesForCurrentStage(userId, newStage);
 
@@ -80,7 +80,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .dialogues(dialogues)
                 .build();
 
-        gameProgressAsyncService.processStarCollectionAsync(userId, request, newStage);
+        asyncTaskService.processStarCollectionAsync(userId, request, newStage);
 
         return immediateResponse;
     }
@@ -92,8 +92,7 @@ public class GameProgressServiceImpl implements GameProgressService {
         StarType starType = request.getStarType();
         GameStage newStage = gameStateManager.getDeliverStageForStar(starType);
 
-        gameStateManager.updateMemoryStage(userId, newStage);
-        gameStateManager.updateMemoryGameState(userId, starType, true, true);
+        cacheService.updateStarState(userId, starType, true, true);
 
         List<DialogueResponse> dialogues = dialogueService.getDialoguesForCurrentStage(userId, newStage);
 
@@ -103,7 +102,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .dialogues(dialogues)
                 .build();
 
-        gameProgressAsyncService.processStarDeliveryAsync(userId, request, newStage);
+        asyncTaskService.processStarDeliveryAsync(userId, request, newStage);
 
         return immediateResponse;
     }
@@ -131,7 +130,7 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .build();
     }
 
-    // 게임 완료 처리, 이메일 전송 처리 -> 로직 꾸진 거 보니 고쳐야할듯
+    // 게임 완료 처리, 이메일 전송 처리
     @Override
     @Transactional
     public GameStateResponse completeGameAndSendEmail(UUID userId, EmailRequest request) {
@@ -143,11 +142,11 @@ public class GameProgressServiceImpl implements GameProgressService {
         log.info("게임 완료 처리 - 사용자: {}, 이메일: {}, 선택한 NPC: {}",
                 userId, request.getEmail(), request.getSelectedNpc());
 
-        gameStateManager.updateMemoryStage(userId, GameStage.GAME_COMPLETE);
+        cacheService.updateGameStage(userId, GameStage.GAME_COMPLETE);
         gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
         GameStateResponse response = getCurrentGameState(userId);
 
-        emailAsyncService.sendEmailAsync(userId, request);
+        asyncTaskService.sendEmailAsync(userId, request);
 
         return response;
     }
