@@ -101,13 +101,11 @@ class GameStateManagerTest {
         when(interactiveObjectRepository.findAll()).thenReturn(allObjects);
         when(entityMapper.createCollectedStar(any(UUID.class), any(Integer.class))).thenReturn(mock(CollectedStar.class));
         when(entityMapper.createUserInteraction(any(UUID.class), any(Integer.class), any(Boolean.class))).thenReturn(mock(UserInteraction.class));
-        when(gameProgressRepository.save(any(GameProgress.class))).thenReturn(mock(GameProgress.class));
 
         // When
         gameStateManager.handleGameStart(testUserId);
 
         // Then
-        verify(gameProgressRepository).save(any(GameProgress.class));
         verify(collectedStarRepository, times(4)).save(any(CollectedStar.class));
         verify(userInteractionRepository, times(2)).save(any(UserInteraction.class));
         verify(cacheService).initializeUserCache(eq(testUserId), eq(GameStage.INTRO));

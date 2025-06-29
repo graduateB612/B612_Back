@@ -50,7 +50,6 @@ public class GameProgressServiceImpl implements GameProgressService {
                 gameProgressRepository.findByUserId(userId), userId);
 
         GameStage newStage = request.getNewStage();
-        cacheService.updateStarState(userId, null, false, false); // 즉시 응답용 임시 캐시 업데이트
         List<DialogueResponse> dialogues = dialogueService.getDialoguesForCurrentStage(userId, newStage);
 
         GameStateResponse response = GameStateResponse.builder()
