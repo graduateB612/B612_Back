@@ -10,6 +10,7 @@ import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.EmailLogRepository;
 import com.b612.rose.repository.StarRepository;
 import com.b612.rose.repository.UserRepository;
+import com.b612.rose.mapper.EntityMapper;
 import com.b612.rose.service.service.EmailService;
 import com.b612.rose.utils.EmailTemplateManager;
 import jakarta.mail.MessagingException;
@@ -37,6 +38,7 @@ public class EmailServiceImpl implements EmailService {
     private final EmailLogRepository emailLogRepository;
     private final StarRepository starRepository;
     private final EmailTemplateManager emailTemplateManager;
+    private final EntityMapper entityMapper;
 
     // 이메일 전송 처리
     @Override
@@ -79,14 +81,7 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
             log.info("이메일 전송 성공: {}", request.getEmail());
 
-            EmailLog emailLog = EmailLog.builder()
-                    .userId(userId)
-                    .recipientEmail(request.getEmail())
-                    .subject(subject)
-                    .sentAt(LocalDateTime.now())
-                    .isDelivered(true)
-                    .build();
-
+            EmailLog emailLog = entityMapper.createSuccessEmailLog(userId, request.getEmail(), subject, content);
             emailLogRepository.save(emailLog);
 
             return true;
@@ -104,15 +99,7 @@ public class EmailServiceImpl implements EmailService {
 
     private void saveFailedEmailLog(UUID userId, String email, String subject, String content) {
         try {
-            EmailLog failedLog = EmailLog.builder()
-                    .userId(userId)
-                    .recipientEmail(email)
-                    .subject(subject)
-                    .content(content)
-                    .sentAt(LocalDateTime.now())
-                    .isDelivered(false)
-                    .build();
-
+            EmailLog failedLog = entityMapper.createFailureEmailLog(userId, email, subject, content);
             emailLogRepository.save(failedLog);
         } catch (Exception e) {
             log.error("이메일 로그 저장 실패: {}", e.getMessage(), e);
