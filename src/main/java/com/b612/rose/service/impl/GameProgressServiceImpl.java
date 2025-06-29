@@ -1,6 +1,6 @@
 package com.b612.rose.service.impl;
 
-import com.b612.rose.dto.request.EmailRequest;
+
 import com.b612.rose.dto.request.GameStageUpdateRequest;
 import com.b612.rose.dto.request.StarActionRequest;
 import com.b612.rose.dto.response.DialogueResponse;
@@ -130,24 +130,5 @@ public class GameProgressServiceImpl implements GameProgressService {
                 .build();
     }
 
-    // 게임 완료 처리, 이메일 전송 처리
-    @Override
-    @Transactional
-    public GameStateResponse completeGameAndSendEmail(UUID userId, EmailRequest request) {
-        ExceptionUtils.validateAllStarsCompleted(
-                gameStateManager.areAllStarsCollectedAndDelivered(userId));
-        ExceptionUtils.validateEmailProvided(request.getEmail());
-        ExceptionUtils.validateNpcSelected(request.getSelectedNpc());
 
-        log.info("게임 완료 처리 - 사용자: {}, 이메일: {}, 선택한 NPC: {}",
-                userId, request.getEmail(), request.getSelectedNpc());
-
-        cacheService.updateGameStage(userId, GameStage.GAME_COMPLETE);
-        gameStateManager.completeGame(userId, request.getEmail(), request.getConcern(), request.getSelectedNpc());
-        GameStateResponse response = getCurrentGameState(userId);
-
-        asyncTaskService.sendEmailAsync(userId, request);
-
-        return response;
-    }
 }

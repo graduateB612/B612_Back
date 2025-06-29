@@ -15,5 +15,4 @@ public interface GameProgressService {
     GameStateResponse onStarDelivered(UUID userId, StarActionRequest request);
     GameStage getCurrentStage(UUID userId);
     GameStateResponse getCurrentGameState(UUID userId);
-    GameStateResponse completeGameAndSendEmail(UUID userId, EmailRequest request);
 }
