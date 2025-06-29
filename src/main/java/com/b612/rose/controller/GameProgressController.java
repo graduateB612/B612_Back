@@ -22,39 +22,39 @@ public class GameProgressController {
     private final StarActionService starActionService;
 
     @PostMapping("/{userId}/start-game")
-    public ResponseEntity<ApiResponse<GameStateResponse>> startGame(@PathVariable UUID userId) {
+    public ResponseEntity<GameStateResponse> startGame(@PathVariable UUID userId) {
         GameStageUpdateRequest request = new GameStageUpdateRequest(GameStage.GAME_START);
         GameStateResponse response = gameProgressService.updateGameStage(userId, request);
-        return ResponseEntity.ok(ApiResponse.success(response, "게임이 성공적으로 시작되었습니다."));
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<ApiResponse<GameStateResponse>> updateGameStage(
+    public ResponseEntity<GameStateResponse> updateGameStage(
             @PathVariable UUID userId,
             @RequestBody GameStageUpdateRequest request) {
         GameStateResponse response = gameProgressService.updateGameStage(userId, request);
-        return ResponseEntity.ok(ApiResponse.success(response, "게임 스테이지가 성공적으로 업데이트되었습니다."));
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{userId}/collect")
-    public ResponseEntity<ApiResponse<GameStateResponse>> collectStar(
+    public ResponseEntity<GameStateResponse> collectStar(
             @PathVariable UUID userId,
             @RequestBody StarActionRequest request) {
         GameStateResponse response = starActionService.onStarCollected(userId, request);
-        return ResponseEntity.ok(ApiResponse.success(response, "별을 성공적으로 수집했습니다."));
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{userId}/deliver")
-    public ResponseEntity<ApiResponse<GameStateResponse>> deliverStar(
+    public ResponseEntity<GameStateResponse> deliverStar(
             @PathVariable UUID userId,
             @RequestBody StarActionRequest request) {
         GameStateResponse response = starActionService.onStarDelivered(userId, request);
-        return ResponseEntity.ok(ApiResponse.success(response, "별을 성공적으로 전달했습니다."));
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<ApiResponse<GameStateResponse>> getCurrentGameState(@PathVariable UUID userId) {
+    public ResponseEntity<GameStateResponse> getCurrentGameState(@PathVariable UUID userId) {
         GameStateResponse response = gameProgressService.getCurrentGameState(userId);
-        return ResponseEntity.ok(ApiResponse.success(response, "현재 게임 상태를 성공적으로 조회했습니다."));
+        return ResponseEntity.ok(response);
     }
 }

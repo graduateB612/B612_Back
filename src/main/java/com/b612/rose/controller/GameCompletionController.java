@@ -20,10 +20,10 @@ public class GameCompletionController {
     private final GameCompletionService gameCompletionService;
 
     @PostMapping("/{userId}/complete")
-    public ResponseEntity<ApiResponse<GameStateResponse>> completeGameAndSendEmail(
+    public ResponseEntity<GameStateResponse> completeGameAndSendEmail(
             @PathVariable UUID userId,
             @RequestBody EmailRequest request) {
         GameStateResponse response = gameCompletionService.completeGameAndSendEmail(userId, request);
-        return ResponseEntity.ok(ApiResponse.success(response, "게임이 성공적으로 완료되었고 이메일이 전송되었습니다."));
+        return ResponseEntity.ok(response);
     }
 }

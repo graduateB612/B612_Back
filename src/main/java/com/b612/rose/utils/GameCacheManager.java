@@ -46,6 +46,10 @@ public class GameCacheManager {
 
     // 메모리에서 별 상태 업데이트 (수집/전달)
     public void updateStarStateInCache(UUID userId, StarType starType, boolean collected, boolean delivered) {
+        if (starType == null) {
+            throw new IllegalArgumentException("StarType cannot be null");
+        }
+        
         userGameStates.compute(userId, (key, existingCache) -> {
             GameStateCache cache = existingCache != null ? existingCache : GameStateCache.createInitial();
 
@@ -65,6 +69,9 @@ public class GameCacheManager {
 
     // 메모리에서 별 수집 상태 조회
     public Boolean isStarCollectedInCache(UUID userId, StarType starType) {
+        if (starType == null) {
+            return null;
+        }
         GameStateCache cache = userGameStates.get(userId);
         if (cache == null) {
             return null;
@@ -74,6 +81,9 @@ public class GameCacheManager {
 
     // 메모리에서 별 전달 상태 조회
     public Boolean isStarDeliveredInCache(UUID userId, StarType starType) {
+        if (starType == null) {
+            return null;
+        }
         GameStateCache cache = userGameStates.get(userId);
         if (cache == null) {
             return null;
