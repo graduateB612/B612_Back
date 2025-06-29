@@ -6,6 +6,7 @@ import com.b612.rose.dto.response.ApiResponse;
 import com.b612.rose.dto.response.GameStateResponse;
 import com.b612.rose.entity.enums.GameStage;
 import com.b612.rose.service.service.GameProgressService;
+import com.b612.rose.service.service.StarActionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,7 @@ import java.util.UUID;
 public class GameProgressController {
 
     private final GameProgressService gameProgressService;
+    private final StarActionService starActionService;
 
     @PostMapping("/{userId}/start-game")
     public ResponseEntity<ApiResponse<GameStateResponse>> startGame(@PathVariable UUID userId) {
@@ -38,7 +40,7 @@ public class GameProgressController {
     public ResponseEntity<ApiResponse<GameStateResponse>> collectStar(
             @PathVariable UUID userId,
             @RequestBody StarActionRequest request) {
-        GameStateResponse response = gameProgressService.onStarCollected(userId, request);
+        GameStateResponse response = starActionService.onStarCollected(userId, request);
         return ResponseEntity.ok(ApiResponse.success(response, "별을 성공적으로 수집했습니다."));
     }
 
@@ -46,7 +48,7 @@ public class GameProgressController {
     public ResponseEntity<ApiResponse<GameStateResponse>> deliverStar(
             @PathVariable UUID userId,
             @RequestBody StarActionRequest request) {
-        GameStateResponse response = gameProgressService.onStarDelivered(userId, request);
+        GameStateResponse response = starActionService.onStarDelivered(userId, request);
         return ResponseEntity.ok(ApiResponse.success(response, "별을 성공적으로 전달했습니다."));
     }
 
