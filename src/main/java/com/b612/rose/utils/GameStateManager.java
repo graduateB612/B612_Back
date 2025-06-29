@@ -27,6 +27,7 @@ public class GameStateManager {
     private final CollectedStarRepository collectedStarRepository;
     private final InteractiveObjectRepository interactiveObjectRepository;
     private final UserInteractionRepository userInteractionRepository;
+    private final GameProgressRepository gameProgressRepository;
 
     private final CacheService cacheService;
     private final GameStageService gameStageService;
@@ -39,6 +40,13 @@ public class GameStateManager {
     public void handleGameStart(UUID userId) {
         ExceptionUtils.getUserOrThrow(userRepository.findById(userId), userId);
 
+        // GameProgress 생성 (게임 상태 초기화)
+        GameProgress gameProgress = GameProgress.builder()
+                .userId(userId)
+                .currentStage(GameStage.INTRO)
+                .build();
+        gameProgressRepository.save(gameProgress);
+
         List<Star> allStars = starRepository.findAll();
 
         for (Star star : allStars) {
@@ -46,7 +54,7 @@ public class GameStateManager {
             collectedStarRepository.save(collectedStar);
         }
         initUserInteractions(userId);
-        cacheService.initializeUserCache(userId, com.b612.rose.entity.enums.GameStage.INTRO);
+        cacheService.initializeUserCache(userId, GameStage.INTRO);
     }
 
     // 현재 스테이지 조회 (서비스 위임)

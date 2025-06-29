@@ -27,6 +27,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -46,10 +47,31 @@ public class GameProgressServiceImpl implements GameProgressService {
     @Override
     @Transactional
     public GameStateResponse updateGameStage(UUID userId, GameStageUpdateRequest request) {
-        GameProgress currentProgress = ExceptionUtils.getGameProgressOrThrow(
-                gameProgressRepository.findByUserId(userId), userId);
-
+        // 사용자 존재 확인
+        ExceptionUtils.getUserOrThrow(userRepository.findById(userId), userId);
+        
         GameStage newStage = request.getNewStage();
+        
+        // GameProgress 조회 또는 생성 (게임 시작 시 필요)
+        Optional<GameProgress> progressOptional = gameProgressRepository.findByUserId(userId);
+        GameProgress currentProgress;
+        
+        if (progressOptional.isEmpty()) {
+            // GameProgress가 없으면 생성 (게임 시작 시)
+            currentProgress = GameProgress.builder()
+                    .userId(userId)
+                    .currentStage(newStage)
+                    .build();
+            currentProgress = gameProgressRepository.save(currentProgress);
+            
+            // 게임 시작인 경우 초기화 작업도 수행
+            if (newStage == GameStage.GAME_START) {
+                asyncTaskService.initializeGameStateAsync(userId);
+            }
+        } else {
+            currentProgress = progressOptional.get();
+        }
+
         cacheService.updateStarState(userId, null, false, false); // 즉시 응답용 임시 캐시 업데이트
         List<DialogueResponse> dialogues = dialogueService.getDialoguesForCurrentStage(userId, newStage);
 
