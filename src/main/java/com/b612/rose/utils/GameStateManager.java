@@ -6,6 +6,8 @@ import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.exception.ExceptionUtils;
 import com.b612.rose.repository.*;
+import com.b612.rose.mapper.EntityMapper;
+import com.b612.rose.mapper.UserMapper;
 import com.b612.rose.service.service.CacheService;
 import com.b612.rose.service.service.GameStageService;
 import com.b612.rose.service.service.StarCollectionService;
@@ -29,6 +31,8 @@ public class GameStateManager {
     private final CacheService cacheService;
     private final GameStageService gameStageService;
     private final StarCollectionService starCollectionService;
+    private final EntityMapper entityMapper;
+    private final UserMapper userMapper;
 
     // 게임 시작때 필요한 로직
     @Transactional
@@ -38,13 +42,7 @@ public class GameStateManager {
         List<Star> allStars = starRepository.findAll();
 
         for (Star star : allStars) {
-            CollectedStar collectedStar = CollectedStar.builder()
-                    .userId(userId)
-                    .starId(star.getStarId())
-                    .collected(false)
-                    .delivered(false)
-                    .build();
-
+            CollectedStar collectedStar = entityMapper.createCollectedStar(userId, star.getStarId());
             collectedStarRepository.save(collectedStar);
         }
         initUserInteractions(userId);
@@ -93,21 +91,9 @@ public class GameStateManager {
                 .orElse(null);
 
         if (interaction == null) {
-            interaction = UserInteraction.builder()
-                    .userId(userId)
-                    .objectId(requestFormObject.getObjectId())
-                    .hasInteracted(false)
-                    .isActive(true)
-                    .build();
+            interaction = entityMapper.createUserInteraction(userId, requestFormObject.getObjectId(), true);
         } else {
-            interaction = UserInteraction.builder()
-                    .interactionId(interaction.getInteractionId())
-                    .userId(interaction.getUserId())
-                    .objectId(interaction.getObjectId())
-                    .hasInteracted(interaction.isHasInteracted())
-                    .isActive(true)
-                    .interactedAt(interaction.getInteractedAt())
-                    .build();
+            interaction = entityMapper.updateUserInteraction(interaction, interaction.isHasInteracted(), true, interaction.getInteractedAt());
         }
 
         userInteractionRepository.save(interaction);
@@ -118,14 +104,7 @@ public class GameStateManager {
     public void completeGame(UUID userId, String email, String concern, String selectedNpc) {
         User user = ExceptionUtils.getUserOrThrow(userRepository.findById(userId), userId);
 
-        User updatedUser = User.builder()
-                .userId(user.getUserId())
-                .userName(user.getUserName())
-                .email(email)
-                .concern(concern)
-                .selectedNpc(selectedNpc)
-                .isCompleted(true)
-                .build();
+        User updatedUser = userMapper.updateForGameCompletion(user, email, concern, selectedNpc);
 
         userRepository.save(updatedUser);
         updateDatabaseGameStage(userId, GameStage.GAME_COMPLETE);
@@ -142,14 +121,7 @@ public class GameStateManager {
 
         for (InteractiveObject object : objects) {
             boolean isActive = object.getObjectType() != InteractiveObjectType.REQUEST_FORM;
-
-            UserInteraction interaction = UserInteraction.builder()
-                    .userId(userId)
-                    .objectId(object.getObjectId())
-                    .hasInteracted(false)
-                    .isActive(isActive)
-                    .build();
-
+            UserInteraction interaction = entityMapper.createUserInteraction(userId, object.getObjectId(), isActive);
             userInteractionRepository.save(interaction);
         }
     }
