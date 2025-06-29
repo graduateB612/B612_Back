@@ -1,6 +1,7 @@
 package com.b612.rose.controller;
 
 import com.b612.rose.dto.request.UserCreateRequest;
+import com.b612.rose.dto.response.ApiResponse;
 import com.b612.rose.dto.response.UserResponse;
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
@@ -19,16 +20,16 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping
-    public ResponseEntity<UserResponse> createUser(@RequestBody UserCreateRequest request) {
+    public ResponseEntity<ApiResponse<UserResponse>> createUser(@RequestBody UserCreateRequest request) {
         UserResponse userResponse = userService.createUser(request);
-        return ResponseEntity.ok(userResponse);
+        return ResponseEntity.ok(ApiResponse.success(userResponse, "사용자가 성공적으로 생성되었습니다."));
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<UserResponse> getUserInfo(@PathVariable UUID userId) {
+    public ResponseEntity<ApiResponse<UserResponse>> getUserInfo(@PathVariable UUID userId) {
         UserResponse userResponse = userService.getUserById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND,
                         "User not found with ID: " + userId));
-        return ResponseEntity.ok(userResponse);
+        return ResponseEntity.ok(ApiResponse.success(userResponse, "사용자 정보를 성공적으로 조회했습니다."));
     }
 }
