@@ -22,10 +22,10 @@ public class GameProgressController {
     private final StarActionService starActionService;
 
     @PostMapping("/{userId}/start-game")
-    public ResponseEntity<ApiResponse<GameStateResponse>> startGame(@PathVariable UUID userId) {
+    public ResponseEntity<GameStateResponse> startGame(@PathVariable UUID userId) {
         GameStageUpdateRequest request = new GameStageUpdateRequest(GameStage.GAME_START);
         GameStateResponse response = gameProgressService.updateGameStage(userId, request);
-        return ResponseEntity.ok(ApiResponse.success(response, "게임이 성공적으로 시작되었습니다."));
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{userId}")

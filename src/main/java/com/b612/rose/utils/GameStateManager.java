@@ -40,13 +40,6 @@ public class GameStateManager {
     public void handleGameStart(UUID userId) {
         ExceptionUtils.getUserOrThrow(userRepository.findById(userId), userId);
 
-        // GameProgress 생성 (게임 상태 초기화)
-        GameProgress gameProgress = GameProgress.builder()
-                .userId(userId)
-                .currentStage(GameStage.INTRO)
-                .build();
-        gameProgressRepository.save(gameProgress);
-
         List<Star> allStars = starRepository.findAll();
 
         for (Star star : allStars) {
