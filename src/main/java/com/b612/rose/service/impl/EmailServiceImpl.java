@@ -1,31 +1,25 @@
 package com.b612.rose.service.impl;
 
 import com.b612.rose.dto.request.EmailRequest;
-import com.b612.rose.entity.domain.EmailLog;
 import com.b612.rose.entity.domain.Star;
 import com.b612.rose.entity.domain.User;
 import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
-import com.b612.rose.repository.EmailLogRepository;
 import com.b612.rose.repository.StarRepository;
 import com.b612.rose.repository.UserRepository;
-import com.b612.rose.mapper.EntityMapper;
 import com.b612.rose.service.service.EmailService;
 import com.b612.rose.utils.EmailTemplateManager;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -35,10 +29,8 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
     private final UserRepository userRepository;
-    private final EmailLogRepository emailLogRepository;
     private final StarRepository starRepository;
     private final EmailTemplateManager emailTemplateManager;
-    private final EntityMapper entityMapper;
 
     // 이메일 전송 처리
     @Override
@@ -81,28 +73,16 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
             log.info("이메일 전송 성공: {}", request.getEmail());
 
-            EmailLog emailLog = entityMapper.createSuccessEmailLog(userId, request.getEmail(), subject, content);
-            emailLogRepository.save(emailLog);
-
             return true;
 
         } catch (MessagingException e) {
             log.error("이메일 전송 실패 (MessagingException): {}", e.getMessage(), e);
-            saveFailedEmailLog(userId, request.getEmail(), subject, content);
             throw new BusinessException(ErrorCode.EMAIL_SENDING_FAILED, e.getMessage(), e);
         } catch (Exception e) {
             log.error("이메일 전송 실패 (일반 예외): {}", e.getMessage(), e);
-            saveFailedEmailLog(userId, request.getEmail(), subject, content);
             throw new BusinessException(ErrorCode.EMAIL_SENDING_FAILED, e.getMessage(), e);
         }
     }
 
-    private void saveFailedEmailLog(UUID userId, String email, String subject, String content) {
-        try {
-            EmailLog failedLog = entityMapper.createFailureEmailLog(userId, email, subject, content);
-            emailLogRepository.save(failedLog);
-        } catch (Exception e) {
-            log.error("이메일 로그 저장 실패: {}", e.getMessage(), e);
-        }
-    }
+
 }
