@@ -51,12 +51,12 @@ public class UserServiceImpl implements UserService {
         // 3. 트랜잭션 커밋 후 비동기 작업 시작을 보장
         final UUID userId = savedUser.getUserId();
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
                     asyncTaskService.initializeGameStateAsync(userId);
-                }
-            });
+            }
+        });
         } else {
             // 테스트 환경에서는 즉시 실행
             asyncTaskService.initializeGameStateAsync(userId);

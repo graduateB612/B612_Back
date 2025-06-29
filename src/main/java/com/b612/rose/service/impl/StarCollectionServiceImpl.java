@@ -14,7 +14,7 @@ import com.b612.rose.repository.InteractiveObjectRepository;
 import com.b612.rose.repository.StarRepository;
 import com.b612.rose.repository.UserInteractionRepository;
 import com.b612.rose.service.service.StarCollectionService;
-import com.b612.rose.utils.GameCacheManager;
+import com.b612.rose.service.service.CacheService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +31,7 @@ public class StarCollectionServiceImpl implements StarCollectionService {
     private final CollectedStarRepository collectedStarRepository;
     private final InteractiveObjectRepository interactiveObjectRepository;
     private final UserInteractionRepository userInteractionRepository;
-    private final GameCacheManager gameCacheManager;
+    private final CacheService cacheService;
 
     // 별 수집 처리
     @Override
@@ -59,7 +59,7 @@ public class StarCollectionServiceImpl implements StarCollectionService {
                 .build();
 
         collectedStarRepository.save(updatedCollectedStar);
-        gameCacheManager.updateStarStateInCache(userId, starType, true, oldCollectedStar.isDelivered());
+        cacheService.updateStarState(userId, starType, true, oldCollectedStar.isDelivered());
     }
 
     // 별 전달 처리
@@ -90,7 +90,7 @@ public class StarCollectionServiceImpl implements StarCollectionService {
                 .build();
 
         collectedStarRepository.save(updatedCollectedStar);
-        gameCacheManager.updateStarStateInCache(userId, starType, oldCollectedStar.isCollected(), true);
+        cacheService.updateStarState(userId, starType, oldCollectedStar.isCollected(), true);
 
         if (starType == StarType.SAD) {
             activateRequestForm(userId);

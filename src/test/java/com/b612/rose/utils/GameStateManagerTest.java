@@ -7,6 +7,7 @@ import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.*;
+import com.b612.rose.service.service.CacheService;
 import com.b612.rose.service.service.GameStageService;
 import com.b612.rose.service.service.StarCollectionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +42,8 @@ class GameStateManagerTest {
     private InteractiveObjectRepository interactiveObjectRepository;
     @Mock
     private UserInteractionRepository userInteractionRepository;
+    @Mock
+    private CacheService cacheService;
     @Mock
     private GameStageService gameStageService;
     @Mock
@@ -95,6 +98,7 @@ class GameStateManagerTest {
         // Then
         verify(collectedStarRepository, times(4)).save(any(CollectedStar.class));
         verify(userInteractionRepository, times(2)).save(any(UserInteraction.class));
+        verify(cacheService).initializeUserCache(eq(testUserId), eq(GameStage.INTRO));
     }
 
     @Test

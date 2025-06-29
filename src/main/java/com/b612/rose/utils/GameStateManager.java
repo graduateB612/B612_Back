@@ -6,6 +6,7 @@ import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.exception.ExceptionUtils;
 import com.b612.rose.repository.*;
+import com.b612.rose.service.service.CacheService;
 import com.b612.rose.service.service.GameStageService;
 import com.b612.rose.service.service.StarCollectionService;
 import jakarta.transaction.Transactional;
@@ -24,7 +25,8 @@ public class GameStateManager {
     private final CollectedStarRepository collectedStarRepository;
     private final InteractiveObjectRepository interactiveObjectRepository;
     private final UserInteractionRepository userInteractionRepository;
-    
+
+    private final CacheService cacheService;
     private final GameStageService gameStageService;
     private final StarCollectionService starCollectionService;
 
@@ -46,6 +48,7 @@ public class GameStateManager {
             collectedStarRepository.save(collectedStar);
         }
         initUserInteractions(userId);
+        cacheService.initializeUserCache(userId, com.b612.rose.entity.enums.GameStage.INTRO);
     }
 
     // 현재 스테이지 조회 (서비스 위임)
@@ -71,7 +74,7 @@ public class GameStateManager {
     // 별 전달 처리 (서비스 위임)
     public void markStarAsDelivered(UUID userId, StarType starType) {
         starCollectionService.markStarAsDelivered(userId, starType);
-    }
+        }
 
     // 데이터베이스 스테이지 업데이트 (서비스 위임)
     public void updateDatabaseGameStage(UUID userId, GameStage newStage) {
