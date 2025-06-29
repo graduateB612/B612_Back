@@ -6,6 +6,7 @@ import com.b612.rose.entity.domain.User;
 import com.b612.rose.entity.enums.GameStage;
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
+import com.b612.rose.mapper.DialogueMapper;
 import com.b612.rose.repository.DialogueRepository;
 import com.b612.rose.repository.UserRepository;
 import com.b612.rose.service.service.DialogueService;
@@ -28,6 +29,7 @@ public class DialogueServiceImpl implements DialogueService {
 
     private final DialogueRepository dialogueRepository;
     private final UserRepository userRepository;
+    private final DialogueMapper dialogueMapper;
 
     private final ConcurrentHashMap<String, List<Dialogue>> dialogueCache = new ConcurrentHashMap<>();
 
@@ -86,7 +88,9 @@ public class DialogueServiceImpl implements DialogueService {
             dialogueCache.put(cacheKey, List.of(dialogue));
         }
 
-        return formatDialogueResponse(dialogue, userId);
+        Optional<User> userOptional = userRepository.findById(userId);
+        return userOptional.map(user -> dialogueMapper.toResponse(dialogue, user))
+                .orElse(dialogueMapper.toResponse(dialogue));
     }
 
 
@@ -107,7 +111,9 @@ public class DialogueServiceImpl implements DialogueService {
             dialogueCache.put(cacheKey, List.of(dialogue));
         }
 
-        return formatDialogueResponse(dialogue, userId);
+        Optional<User> userOptional = userRepository.findById(userId);
+        return userOptional.map(user -> dialogueMapper.toResponse(dialogue, user))
+                .orElse(dialogueMapper.toResponse(dialogue));
     }
 
     // 현재 게임 진척도에 맞는 대화 검색
@@ -129,8 +135,10 @@ public class DialogueServiceImpl implements DialogueService {
             dialogueCache.put(cacheKey, cachedDialogues);
         }
 
+        Optional<User> userOptional = userRepository.findById(userId);
         return cachedDialogues.stream()
-                .map(dialogue -> formatDialogueResponse(dialogue, userId))
+                .map(dialogue -> userOptional.map(user -> dialogueMapper.toResponse(dialogue, user))
+                        .orElse(dialogueMapper.toResponse(dialogue)))
                 .collect(Collectors.toList());
     }
 
@@ -152,8 +160,10 @@ public class DialogueServiceImpl implements DialogueService {
             dialogueCache.put(cacheKey, cachedDialogues);
         }
 
+        Optional<User> userOptional = userRepository.findById(userId);
         return cachedDialogues.stream()
-                .map(dialogue -> formatDialogueResponse(dialogue, userId))
+                .map(dialogue -> userOptional.map(user -> dialogueMapper.toResponse(dialogue, user))
+                        .orElse(dialogueMapper.toResponse(dialogue)))
                 .collect(Collectors.toList());
     }
 
@@ -176,21 +186,5 @@ public class DialogueServiceImpl implements DialogueService {
         };
     }
 
-    // 대화 내용에 userName이 들어가야 하는 경우 포맷팅
-    private DialogueResponse formatDialogueResponse(Dialogue dialogue, UUID userId) {
-        String formattedText = dialogue.getDialogueText();
 
-        Optional<User> userOptional = userRepository.findById(userId);
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            formattedText = formattedText.replace("{userName}", user.getUserName());
-        }
-
-        return DialogueResponse.builder()
-                .dialogueId(dialogue.getDialogueId())
-                .npcId(dialogue.getNpcId())
-                .npcName(dialogue.getNpc() != null ? dialogue.getNpc().getNpcName() : null)
-                .dialogueText(formattedText)
-                .build();
-    }
 }

@@ -7,6 +7,8 @@ import com.b612.rose.entity.domain.User;
 import com.b612.rose.entity.enums.GameStage;
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
+import com.b612.rose.mapper.GameProgressMapper;
+import com.b612.rose.mapper.UserMapper;
 import com.b612.rose.repository.GameProgressRepository;
 import com.b612.rose.repository.UserRepository;
 import com.b612.rose.service.impl.UserServiceImpl;
@@ -36,6 +38,10 @@ class UserServiceImplTest {
     private GameProgressRepository gameProgressRepository;
     @Mock
     private AsyncTaskService asyncTaskService;
+    @Mock
+    private UserMapper userMapper;
+    @Mock
+    private GameProgressMapper gameProgressMapper;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -79,7 +85,16 @@ class UserServiceImplTest {
                 .isCompleted(false)
                 .build();
 
+        UserResponse expectedResponse = UserResponse.builder()
+                .id(testUserId)
+                .userName("NewUser")
+                .currentStage(GameStage.INTRO)
+                .build();
+
+        when(userMapper.toEntity(createRequest)).thenReturn(savedUser);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(gameProgressMapper.createNew(testUserId, GameStage.INTRO)).thenReturn(testGameProgress);
+        when(userMapper.toResponse(savedUser, GameStage.INTRO)).thenReturn(expectedResponse);
 
         // When
         UserResponse result = userService.createUser(createRequest);
@@ -98,8 +113,15 @@ class UserServiceImplTest {
     @DisplayName("사용자 조회 성공")
     void getUserById_Success() {
         // Given
+        UserResponse expectedResponse = UserResponse.builder()
+                .id(testUserId)
+                .userName("TestUser")
+                .currentStage(GameStage.INTRO)
+                .build();
+
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
         when(gameProgressRepository.findByUserId(testUserId)).thenReturn(Optional.of(testGameProgress));
+        when(userMapper.toResponse(testUser, testGameProgress)).thenReturn(expectedResponse);
 
         // When
         Optional<UserResponse> result = userService.getUserById(testUserId);
@@ -161,8 +183,15 @@ class UserServiceImplTest {
     void getUserByEmail_Success() {
         // Given
         String email = "test@example.com";
+        UserResponse expectedResponse = UserResponse.builder()
+                .id(testUserId)
+                .userName("TestUser")
+                .currentStage(GameStage.INTRO)
+                .build();
+
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(testUser));
         when(gameProgressRepository.findByUserId(testUserId)).thenReturn(Optional.of(testGameProgress));
+        when(userMapper.toResponse(testUser, testGameProgress)).thenReturn(expectedResponse);
 
         // When
         Optional<UserResponse> result = userService.getUserByEmail(email);

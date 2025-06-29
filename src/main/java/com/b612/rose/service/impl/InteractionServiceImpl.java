@@ -6,6 +6,7 @@ import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.*;
+import com.b612.rose.mapper.InteractionMapper;
 import com.b612.rose.service.service.DialogueService;
 import com.b612.rose.service.service.AsyncTaskService;
 import com.b612.rose.service.service.InteractionService;
@@ -31,6 +32,7 @@ public class InteractionServiceImpl implements InteractionService {
     private final DialogueService dialogueService;
     private final NpcProfileRepository npcProfileRepository;
     private final AsyncTaskService asyncTaskService;
+    private final InteractionMapper interactionMapper;
 
     private final ConcurrentHashMap<String, List<StarGuideEntry>> starGuideCache = new ConcurrentHashMap<>();
 
@@ -61,11 +63,7 @@ public class InteractionServiceImpl implements InteractionService {
             boolean hasInteracted = interactionOpt.map(UserInteraction::isHasInteracted).orElse(false);
             boolean isActive = interactionOpt.map(UserInteraction::isActive).orElse(false);
 
-            responses.add(ObjectStatusResponse.builder()
-                    .objectType(object.getObjectType())
-                    .hasInteracted(hasInteracted)
-                    .isActive(isActive)
-                    .build());
+            responses.add(interactionMapper.toObjectStatusResponse(object, interactionOpt.orElse(null)));
         }
 
         return responses;
@@ -106,21 +104,7 @@ public class InteractionServiceImpl implements InteractionService {
 
         List<StarGuideEntry> pageEntries = allEntries.subList(startIndex, endIndex);
 
-        List<StarGuideEntryResponse> entryResponses = pageEntries.stream()
-                .map(entry -> StarGuideEntryResponse.builder()
-                        .entryId(entry.getEntryId())
-                        .starName(entry.getStarName())
-                        .starSource(entry.getStarSource())
-                        .description(entry.getDescription())
-                        .build())
-                .collect(Collectors.toList());
-
-        return StarGuideResponse.builder()
-                .dialogues(dialogues)
-                .starEntries(entryResponses)
-                .totalPages(totalPages)
-                .currentPage(page)
-                .build();
+        return interactionMapper.toStarGuideResponse(dialogues, pageEntries, totalPages, page);
     }
 
     // 캐릭터 프로필 조회
@@ -134,21 +118,11 @@ public class InteractionServiceImpl implements InteractionService {
         List<NpcProfileResponse> profileResponses = npcs.stream()
                 .map(npc -> {
                     Optional<NpcProfile> profileOpt = npcProfileRepository.findByNpcId(npc.getNpcId());
-
-                    String description = profileOpt.map(NpcProfile::getDescription).orElse("");
-
-                    return NpcProfileResponse.builder()
-                            .npcId(npc.getNpcId())
-                            .npcName(npc.getNpcName())
-                            .description(description)
-                            .build();
+                    return interactionMapper.toNpcProfileResponse(npc, profileOpt.orElse(null));
                 })
                 .collect(Collectors.toList());
 
-        return CharacterProfileResponse.builder()
-                .dialogues(dialogues)
-                .profiles(profileResponses)
-                .build();
+        return interactionMapper.toCharacterProfileResponse(dialogues, profileResponses);
     }
 
     // 의뢰서 상호작용
