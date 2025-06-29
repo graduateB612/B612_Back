@@ -4,8 +4,6 @@ import com.b612.rose.entity.domain.*;
 import com.b612.rose.entity.enums.GameStage;
 import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.entity.enums.StarType;
-import com.b612.rose.exception.BusinessException;
-import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.mapper.EntityMapper;
 import com.b612.rose.mapper.UserMapper;
 import com.b612.rose.repository.*;
@@ -20,7 +18,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;

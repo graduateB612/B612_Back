@@ -7,16 +7,13 @@ import com.b612.rose.dto.response.DialogueResponse;
 import com.b612.rose.dto.response.GameProgressResponse;
 import com.b612.rose.dto.response.GameStateResponse;
 import com.b612.rose.entity.domain.GameProgress;
-import com.b612.rose.entity.domain.InteractiveObject;
-import com.b612.rose.entity.domain.Star;
-import com.b612.rose.entity.domain.UserInteraction;
+
 import com.b612.rose.entity.enums.GameStage;
-import com.b612.rose.entity.enums.InteractiveObjectType;
 
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.exception.ExceptionUtils;
-import com.b612.rose.repository.*;
+import com.b612.rose.repository.GameProgressRepository;
 import com.b612.rose.service.service.*;
 import com.b612.rose.service.service.CacheService;
 import com.b612.rose.utils.GameStateManager;
@@ -35,8 +32,6 @@ import java.util.UUID;
 public class GameProgressServiceImpl implements GameProgressService {
 
     private final GameProgressRepository gameProgressRepository;
-    private final UserRepository userRepository;
-    private final StarRepository starRepository;
     private final DialogueService dialogueService;
     private final GameStateManager gameStateManager;
     private final CacheService cacheService;

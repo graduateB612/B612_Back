@@ -1,9 +1,7 @@
 package com.b612.rose.mapper;
 
 import com.b612.rose.entity.domain.CollectedStar;
-import com.b612.rose.entity.domain.EmailLog;
 import com.b612.rose.entity.domain.UserInteraction;
-import com.b612.rose.entity.enums.InteractiveObjectType;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -57,27 +55,5 @@ public class EntityMapper {
                 .build();
     }
 
-    // EmailLog 생성 (성공)
-    public EmailLog createSuccessEmailLog(UUID userId, String recipientEmail, String subject, String content) {
-        return EmailLog.builder()
-                .userId(userId)
-                .recipientEmail(recipientEmail)
-                .subject(subject)
-                .content(content)
-                .sentAt(LocalDateTime.now())
-                .isDelivered(true)
-                .build();
-    }
 
-    // EmailLog 생성 (실패)
-    public EmailLog createFailureEmailLog(UUID userId, String recipientEmail, String subject, String content) {
-        return EmailLog.builder()
-                .userId(userId)
-                .recipientEmail(recipientEmail)
-                .subject(subject)
-                .content(content)
-                .sentAt(LocalDateTime.now())
-                .isDelivered(false)
-                .build();
-    }
 } 
