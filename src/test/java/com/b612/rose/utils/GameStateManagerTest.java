@@ -6,6 +6,8 @@ import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
+import com.b612.rose.mapper.EntityMapper;
+import com.b612.rose.mapper.UserMapper;
 import com.b612.rose.repository.*;
 import com.b612.rose.service.service.CacheService;
 import com.b612.rose.service.service.GameStageService;
@@ -48,6 +50,10 @@ class GameStateManagerTest {
     private GameStageService gameStageService;
     @Mock
     private StarCollectionService starCollectionService;
+    @Mock
+    private EntityMapper entityMapper;
+    @Mock
+    private UserMapper userMapper;
 
     @InjectMocks
     private GameStateManager gameStateManager;
@@ -91,6 +97,8 @@ class GameStateManagerTest {
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
         when(starRepository.findAll()).thenReturn(allStars);
         when(interactiveObjectRepository.findAll()).thenReturn(allObjects);
+        when(entityMapper.createCollectedStar(any(UUID.class), any(Integer.class))).thenReturn(mock(CollectedStar.class));
+        when(entityMapper.createUserInteraction(any(UUID.class), any(Integer.class), any(Boolean.class))).thenReturn(mock(UserInteraction.class));
 
         // When
         gameStateManager.handleGameStart(testUserId);
