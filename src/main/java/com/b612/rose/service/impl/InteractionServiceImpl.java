@@ -6,8 +6,9 @@ import com.b612.rose.entity.enums.InteractiveObjectType;
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.*;
+import com.b612.rose.mapper.InteractionMapper;
 import com.b612.rose.service.service.DialogueService;
-import com.b612.rose.service.service.InteractionAsyncService;
+import com.b612.rose.service.service.AsyncTaskService;
 import com.b612.rose.service.service.InteractionService;
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
@@ -15,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -30,7 +30,8 @@ public class InteractionServiceImpl implements InteractionService {
     private final NpcRepository npcRepository;
     private final DialogueService dialogueService;
     private final NpcProfileRepository npcProfileRepository;
-    private final InteractionAsyncService interactionAsyncService;
+    private final AsyncTaskService asyncTaskService;
+    private final InteractionMapper interactionMapper;
 
     private final ConcurrentHashMap<String, List<StarGuideEntry>> starGuideCache = new ConcurrentHashMap<>();
 
@@ -61,11 +62,7 @@ public class InteractionServiceImpl implements InteractionService {
             boolean hasInteracted = interactionOpt.map(UserInteraction::isHasInteracted).orElse(false);
             boolean isActive = interactionOpt.map(UserInteraction::isActive).orElse(false);
 
-            responses.add(ObjectStatusResponse.builder()
-                    .objectType(object.getObjectType())
-                    .hasInteracted(hasInteracted)
-                    .isActive(isActive)
-                    .build());
+            responses.add(interactionMapper.toObjectStatusResponse(object, interactionOpt.orElse(null)));
         }
 
         return responses;
@@ -76,7 +73,7 @@ public class InteractionServiceImpl implements InteractionService {
     @Transactional
     public StarGuideResponse getStarGuide(UUID userId, int page, boolean includeDialogues) {
         if (page == 0 && includeDialogues) {
-            interactionAsyncService.updateInteractionAsync(userId, InteractiveObjectType.STAR_GUIDE);
+            asyncTaskService.updateInteractionAsync(userId, InteractiveObjectType.STAR_GUIDE);
         }
 
         List<DialogueResponse> dialogues = includeDialogues ?
@@ -106,49 +103,25 @@ public class InteractionServiceImpl implements InteractionService {
 
         List<StarGuideEntry> pageEntries = allEntries.subList(startIndex, endIndex);
 
-        List<StarGuideEntryResponse> entryResponses = pageEntries.stream()
-                .map(entry -> StarGuideEntryResponse.builder()
-                        .entryId(entry.getEntryId())
-                        .starName(entry.getStarName())
-                        .starSource(entry.getStarSource())
-                        .description(entry.getDescription())
-                        .build())
-                .collect(Collectors.toList());
-
-        return StarGuideResponse.builder()
-                .dialogues(dialogues)
-                .starEntries(entryResponses)
-                .totalPages(totalPages)
-                .currentPage(page)
-                .build();
+        return interactionMapper.toStarGuideResponse(dialogues, pageEntries, totalPages, page);
     }
 
     // 캐릭터 프로필 조회
     @Override
     @Transactional
     public CharacterProfileResponse getCharacterProfile(UUID userId) {
-        interactionAsyncService.updateInteractionAsync(userId, InteractiveObjectType.CHARACTER_PROFILE);
+        asyncTaskService.updateInteractionAsync(userId, InteractiveObjectType.CHARACTER_PROFILE);
         List<DialogueResponse> dialogues = dialogueService.getDialoguesByType("character_profile", userId);
 
         List<Npc> npcs = npcRepository.findAll();
         List<NpcProfileResponse> profileResponses = npcs.stream()
                 .map(npc -> {
                     Optional<NpcProfile> profileOpt = npcProfileRepository.findByNpcId(npc.getNpcId());
-
-                    String description = profileOpt.map(NpcProfile::getDescription).orElse("");
-
-                    return NpcProfileResponse.builder()
-                            .npcId(npc.getNpcId())
-                            .npcName(npc.getNpcName())
-                            .description(description)
-                            .build();
+                    return interactionMapper.toNpcProfileResponse(npc, profileOpt.orElse(null));
                 })
                 .collect(Collectors.toList());
 
-        return CharacterProfileResponse.builder()
-                .dialogues(dialogues)
-                .profiles(profileResponses)
-                .build();
+        return interactionMapper.toCharacterProfileResponse(dialogues, profileResponses);
     }
 
     // 의뢰서 상호작용
@@ -169,7 +142,7 @@ public class InteractionServiceImpl implements InteractionService {
                     "의뢰서는 아직 사용할 수 없습니다. userId: " + userId);
         }
 
-        interactionAsyncService.updateInteractionAsync(userId, InteractiveObjectType.REQUEST_FORM);
+        asyncTaskService.updateInteractionAsync(userId, InteractiveObjectType.REQUEST_FORM);
         return Collections.emptyList();
     }
 }

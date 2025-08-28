@@ -1,5 +1,6 @@
 package com.b612.rose.controller;
 
+import com.b612.rose.dto.response.ApiResponse;
 import com.b612.rose.dto.response.DialogueResponse;
 import com.b612.rose.entity.enums.GameStage;
 import com.b612.rose.service.service.DialogueService;
@@ -22,30 +23,30 @@ public class DialogueController {
     private final GameProgressService gameProgressService;
 
     @GetMapping("/{userId}/current")
-    public ResponseEntity<List<DialogueResponse>> getCurrentDialogues(@PathVariable UUID userId) {
+    public ResponseEntity<ApiResponse<List<DialogueResponse>>> getCurrentDialogues(@PathVariable UUID userId) {
         GameStage currentStage = gameProgressService.getCurrentStage(userId);
         if (currentStage == null) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(404).body(ApiResponse.error("G001", "현재 게임 스테이지를 찾을 수 없습니다."));
         }
 
         List<DialogueResponse> dialogueResponses = dialogueService.getDialoguesForCurrentStage(userId, currentStage);
-        return ResponseEntity.ok(dialogueResponses);
+        return ResponseEntity.ok(ApiResponse.success(dialogueResponses, "현재 스테이지의 대화를 성공적으로 조회했습니다."));
     }
 
     @GetMapping("/{userId}/{dialogueType}")
-    public ResponseEntity<DialogueResponse> getDialogueByType(
+    public ResponseEntity<ApiResponse<DialogueResponse>> getDialogueByType(
             @PathVariable UUID userId,
             @PathVariable String dialogueType) {
         DialogueResponse dialogueResponse = dialogueService.getDialogueByType(dialogueType, userId);
-        return ResponseEntity.ok(dialogueResponse);
+        return ResponseEntity.ok(ApiResponse.success(dialogueResponse, "대화를 성공적으로 조회했습니다."));
     }
 
     @GetMapping("/{userId}/{dialogueType}/{npcId}")
-    public ResponseEntity<DialogueResponse> getDialogueByTypeAndNpc(
+    public ResponseEntity<ApiResponse<DialogueResponse>> getDialogueByTypeAndNpc(
             @PathVariable UUID userId,
             @PathVariable String dialogueType,
             @PathVariable Integer npcId) {
         DialogueResponse dialogueResponse = dialogueService.getDialogueByTypeAndNpcId(dialogueType, npcId, userId);
-        return ResponseEntity.ok(dialogueResponse);
+        return ResponseEntity.ok(ApiResponse.success(dialogueResponse, "NPC별 대화를 성공적으로 조회했습니다."));
     }
 }

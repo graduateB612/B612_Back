@@ -18,7 +18,8 @@ public class CacheConfig {
         cacheManager.setCaches(Arrays.asList(
                 new ConcurrentMapCache("dialogueCache"),
                 new ConcurrentMapCache("starCache"),
-                new ConcurrentMapCache("npcCache")
+                new ConcurrentMapCache("npcCache"),
+                new ConcurrentMapCache("gameStateCache")
         ));
         return cacheManager;
     }

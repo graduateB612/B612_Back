@@ -1,6 +1,7 @@
 package com.b612.rose.controller;
 
 import com.b612.rose.dto.request.StarGuidePageRequest;
+import com.b612.rose.dto.response.ApiResponse;
 import com.b612.rose.dto.response.CharacterProfileResponse;
 import com.b612.rose.dto.response.DialogueResponse;
 import com.b612.rose.dto.response.ObjectStatusResponse;

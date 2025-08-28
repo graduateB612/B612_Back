@@ -1,6 +1,7 @@
 package com.b612.rose.controller;
 
 import com.b612.rose.dto.request.UserCreateRequest;
+import com.b612.rose.dto.response.ApiResponse;
 import com.b612.rose.dto.response.UserResponse;
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
