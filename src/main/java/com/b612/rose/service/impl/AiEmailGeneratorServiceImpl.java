@@ -1,6 +1,8 @@
 package com.b612.rose.service.impl;
 
 import com.b612.rose.service.service.AiEmailGeneratorService;
+import com.b612.rose.utils.NpcPersonaProvider;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,7 +15,10 @@ import java.nio.charset.StandardCharsets;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
+
+    private final NpcPersonaProvider npcPersonaProvider;
 
     @Value("${ai.email.enabled:false}")
     private boolean enabled;
@@ -41,12 +46,15 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
         try {
             String endpoint = baseUrl.endsWith("/") ? baseUrl + "v1/chat/completions" : baseUrl + "/v1/chat/completions";
 
+            String persona = npcPersonaProvider.getPersona(npcName);
+
             String system = (
                     "당신은 한국어 이메일 본문 HTML 스니펫을 작성하는 도우미입니다. " +
                     "제약: 단락 수준 태그(<p>, <div>, <ul>, <li>, <em>, <strong>, <blockquote> 등)만 사용하세요. " +
                     "<html>, <head>, <body>, <title> 등의 전체 문서 태그나 레이아웃은 포함하지 마세요. " +
                     "따뜻하고 공감 가는 톤으로, 간결하지만 의미 있게 작성하세요. " +
                     "페르소나: B612 세계관의 NPC '" + npcName + "'을(를) 반영해 말투와 분위기를 유지하세요. " +
+                    "캐릭터 페르소나 가이드:\n" + persona + "\n" +
                     "정화된 별의 주제: '" + purifiedTypeName + "'을(를) 과하지 않게 자연스럽게 녹여주세요. ");
 
             String user = (
