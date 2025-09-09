@@ -124,6 +124,13 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
                 if (content != null && !content.isBlank()) return content;
             }
 
+            // 2-1) responses API의 요약 message 블록: message.content: "..."
+            int idxMessage = responseJson.indexOf("\"message\"");
+            if (idxMessage >= 0) {
+                content = extractAfterAnchor(responseJson, idxMessage, "\"content\":\"");
+                if (content != null && !content.isBlank()) return content;
+            }
+
             // 3) 기타 일부 응답: content 배열 내 text 필드 (범용)
             content = extractAfterAnchor(responseJson, 0, "\"text\":\"");
             if (content != null && !content.isBlank()) return content;
