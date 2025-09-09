@@ -6,6 +6,7 @@ import com.b612.rose.entity.enums.StarType;
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.repository.StarRepository;
+import com.b612.rose.service.service.AiEmailGeneratorService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
@@ -13,7 +14,6 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -24,6 +24,7 @@ import java.util.Map;
 public class EmailTemplateManager {
     private final StarRepository starRepository;
     private final ResourceLoader resourceLoader;
+    private final AiEmailGeneratorService aiEmailGeneratorService;
 
     private final Map<String, String> npcEmailMap = new HashMap<>();
     private final Map<String, StarType> npcStarTypeMap = new HashMap<>();
@@ -100,6 +101,16 @@ public class EmailTemplateManager {
 
             if (user.getConcern() != null && !user.getConcern().isEmpty()) {
                 template = template.replace("{{concern}}", user.getConcern());
+            }
+
+            String generated = aiEmailGeneratorService.isEnabled()
+                    ? aiEmailGeneratorService.generateNpcEmailHtml(npcName, user.getUserName(), purifiedTypeName, user.getConcern())
+                    : null;
+
+            if (generated != null && !generated.isBlank()) {
+                template = template.replace("{{generatedContent}}", generated);
+            } else {
+                template = template.replace("{{generatedContent}}", "");
             }
 
             return template;
