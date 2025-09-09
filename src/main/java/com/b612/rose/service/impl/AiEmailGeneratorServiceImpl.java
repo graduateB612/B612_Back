@@ -51,7 +51,7 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
             String system = (
                     "당신은 한국어 이메일 본문 HTML 스니펫을 작성하는 도우미입니다. " +
                     "제약: 태그는 사용하지 말고, 내용만 작성하세요." +
-                    "<html>, <head>, <body>, <title> 등의 전체 문서 태그나 레이아웃 또한한 포함하지 마세요. " +
+                    "사용자가 입력한 고민에 대한 답변을 해주세요." +
                     "페르소나: B612 세계관의 NPC '" + npcName + "'을(를) 반영해 말투와 분위기를 유지하되, 동화속 등장 인물임을 잊지 마세요. " +
                     "캐릭터 페르소나 가이드:\n" + persona + "\n" +
                     "정화된 별의 주제: '" + purifiedTypeName + "'을(를) 과하지 않게 자연스럽게 녹여주세요. ");
@@ -61,7 +61,7 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
                     "NPC: " + safe(npcName) + "\n" +
                     "정화된 별 유형: " + safe(purifiedTypeName) + "\n" +
                     "사용자 고민: " + safe(concern) + "\n\n" +
-                    "전체 분량은 200자 이내로 작성, 단락은 3개를 넘지 않도록 해주세요.\n" +
+                    "사용자 고민에 대한 답변을 작성하되, 전체 분량은 200자 이내로 작성, 단락은 3개를 넘지 않도록 해주세요.\n" +
                     "외부 이미지/링크는 넣지 마세요. 서명 라인은 템플릿에 있으므로 본문에 추가하지 마세요. 인삿말, 끝맺음 등은 이미 작성되어있으니, 사용자 고민에 대한 답변만 하세요.");
 
             String body = "{"
@@ -112,7 +112,7 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
         try {
             int idxChoices = responseJson.indexOf("\"choices\"");
             // 1) chat/completions 표준: choices[0].message.content: "..."
-            String content = idxChoices >= 0 ? extractAfterAnchor(responseJson, idxChoices, "\"content\":\"") : null;
+            String content = idxChoices >= 0 ? extractStringValueForKey(responseJson, idxChoices, "content") : null;
             if (content != null && !content.isBlank()) return content;
 
             // 2) responses API 스타일: output[0].content[0].text
@@ -120,25 +120,25 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
             if (idxOutput >= 0) {
                 int idxContent = responseJson.indexOf("\"content\"", idxOutput);
                 int searchFrom = idxContent >= 0 ? idxContent : idxOutput;
-                content = extractAfterAnchor(responseJson, searchFrom, "\"text\":\"");
+                content = extractStringValueForKey(responseJson, searchFrom, "text");
                 if (content != null && !content.isBlank()) return content;
             }
 
             // 2-1) responses API의 요약 message 블록: message.content: "..."
             int idxMessage = responseJson.indexOf("\"message\"");
             if (idxMessage >= 0) {
-                content = extractAfterAnchor(responseJson, idxMessage, "\"content\":\"");
+                content = extractStringValueForKey(responseJson, idxMessage, "content");
                 if (content != null && !content.isBlank()) return content;
             }
 
             // 3) 기타 일부 응답: content 배열 내 text 필드 (범용)
-            content = extractAfterAnchor(responseJson, 0, "\"text\":\"");
+            content = extractStringValueForKey(responseJson, 0, "text");
             if (content != null && !content.isBlank()) return content;
 
             // 4) 스트리밍 누적 형태 등 예외 포맷 방어적 처리
-            int anyContentIdx = responseJson.indexOf("\"content\":\"");
+            int anyContentIdx = responseJson.indexOf("\"content\"");
             if (anyContentIdx >= 0) {
-                content = extractAfterAnchor(responseJson, anyContentIdx, "\"content\":\"");
+                content = extractStringValueForKey(responseJson, anyContentIdx, "content");
                 if (content != null && !content.isBlank()) return content;
             }
 
@@ -154,11 +154,20 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
         }
     }
 
-    // 앵커(예: "content":" ) 이후부터 닫는 쌍따옴표 전까지 추출
-    private String extractAfterAnchor(String json, int fromIndex, String anchor) {
-        int anchorIndex = json.indexOf(anchor, fromIndex);
-        if (anchorIndex < 0) return null;
-        int i = anchorIndex + anchor.length();
+    // 키(예: content) 뒤 공백/개행 허용하여 문자열 값 추출
+    private String extractStringValueForKey(String json, int fromIndex, String key) {
+        String keyToken = "\"" + key + "\"";
+        int keyIndex = json.indexOf(keyToken, fromIndex);
+        if (keyIndex < 0) return null;
+        int i = keyIndex + keyToken.length();
+        // 공백/개행 스킵
+        while (i < json.length() && Character.isWhitespace(json.charAt(i))) i++;
+        if (i >= json.length() || json.charAt(i) != ':') return null;
+        i++;
+        while (i < json.length() && Character.isWhitespace(json.charAt(i))) i++;
+        if (i >= json.length() || json.charAt(i) != '"') return null;
+        // 시작 따옴표 다음부터 수집
+        i++;
         StringBuilder out = new StringBuilder();
         boolean escaped = false;
         for (; i < json.length(); i++) {
