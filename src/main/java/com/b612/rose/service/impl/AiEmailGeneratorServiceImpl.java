@@ -107,40 +107,69 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
         return s == null ? "" : s;
     }
 
-    // 외부 의존성 없이 간단히 첫 번째 메시지 content 추출
+    // 외부 의존성 없이 첫 번째 메시지 content 추출 (여러 응답 포맷 대응)
     private String extractFirstMessageContent(String responseJson) {
         try {
             int idxChoices = responseJson.indexOf("\"choices\"");
-            if (idxChoices < 0) return null;
+            // 1) chat/completions 표준: choices[0].message.content: "..."
+            String content = idxChoices >= 0 ? extractAfterAnchor(responseJson, idxChoices, "\"content\":\"") : null;
+            if (content != null && !content.isBlank()) return content;
 
-            String anchor = "\"content\":\"";
-            int anchorIndex = responseJson.indexOf(anchor, idxChoices);
-            if (anchorIndex < 0) return null;
-
-            int i = anchorIndex + anchor.length();
-            StringBuilder out = new StringBuilder();
-            boolean escaped = false;
-
-            for (; i < responseJson.length(); i++) {
-                char c = responseJson.charAt(i);
-                if (escaped) {
-                    if (c == 'n') out.append('\n');
-                    else if (c == 't') out.append('\t');
-                    else if (c == '"') out.append('"');
-                    else if (c == '\\') out.append('\\');
-                    else out.append(c);
-                    escaped = false;
-                    continue;
-                }
-                if (c == '\\') { escaped = true; continue; }
-                if (c == '"') { break; }
-                out.append(c);
+            // 2) responses API 스타일: output[0].content[0].text
+            int idxOutput = responseJson.indexOf("\"output\"");
+            if (idxOutput >= 0) {
+                int idxContent = responseJson.indexOf("\"content\"", idxOutput);
+                int searchFrom = idxContent >= 0 ? idxContent : idxOutput;
+                content = extractAfterAnchor(responseJson, searchFrom, "\"text\":\"");
+                if (content != null && !content.isBlank()) return content;
             }
-            return out.toString();
+
+            // 3) 기타 일부 응답: content 배열 내 text 필드 (범용)
+            content = extractAfterAnchor(responseJson, 0, "\"text\":\"");
+            if (content != null && !content.isBlank()) return content;
+
+            // 4) 스트리밍 누적 형태 등 예외 포맷 방어적 처리
+            int anyContentIdx = responseJson.indexOf("\"content\":\"");
+            if (anyContentIdx >= 0) {
+                content = extractAfterAnchor(responseJson, anyContentIdx, "\"content\":\"");
+                if (content != null && !content.isBlank()) return content;
+            }
+
+            // 파싱 실패 시 본문 스니펫 로그
+            int anchorStart = Math.max(0, Math.max(idxChoices, idxOutput));
+            int end = Math.min(responseJson.length(), anchorStart + 500);
+            String snippet = responseJson.substring(anchorStart, end);
+            log.warn("AI email generation parse failed. bodySnippet={}...", snippet);
+            return null;
         } catch (Exception e) {
             log.warn("extractFirstMessageContent failed: {}", e.getMessage());
             return null;
         }
+    }
+
+    // 앵커(예: "content":" ) 이후부터 닫는 쌍따옴표 전까지 추출
+    private String extractAfterAnchor(String json, int fromIndex, String anchor) {
+        int anchorIndex = json.indexOf(anchor, fromIndex);
+        if (anchorIndex < 0) return null;
+        int i = anchorIndex + anchor.length();
+        StringBuilder out = new StringBuilder();
+        boolean escaped = false;
+        for (; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (escaped) {
+                if (c == 'n') out.append('\n');
+                else if (c == 't') out.append('\t');
+                else if (c == '"') out.append('"');
+                else if (c == '\\') out.append('\\');
+                else out.append(c);
+                escaped = false;
+                continue;
+            }
+            if (c == '\\') { escaped = true; continue; }
+            if (c == '"') { break; }
+            out.append(c);
+        }
+        return out.toString();
     }
 }
 
