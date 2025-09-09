@@ -1,10 +1,7 @@
 package com.b612.rose.controller;
 
 import com.b612.rose.dto.request.EmailRequest;
-import com.b612.rose.dto.response.ApiResponse;
-import com.b612.rose.dto.response.EmailResponse;
 import com.b612.rose.dto.response.GameStateResponse;
-import com.b612.rose.service.service.EmailService;
 import com.b612.rose.service.service.GameCompletionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
