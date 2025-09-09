@@ -66,7 +66,6 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
 
             String body = "{"
                     + "\"model\":\"" + json(model) + "\"," 
-                    + "\"temperature\":0.7," 
                     + "\"messages\":["
                     + "{\"role\":\"system\",\"content\":\"" + json(system) + "\"},"
                     + "{\"role\":\"user\",\"content\":\"" + json(user) + "\"}"
