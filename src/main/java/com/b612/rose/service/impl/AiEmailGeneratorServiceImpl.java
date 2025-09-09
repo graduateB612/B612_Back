@@ -64,7 +64,8 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
                     "정화된 별 유형: " + safe(purifiedTypeName) + "\n" +
                     "사용자 고민: " + safe(concern) + "\n\n" +
                     "사용자 고민에 대한 답변을 작성하되, 전체 분량은 200자 이내로 작성, 단락은 3개를 넘지 않도록 해주세요.\n" +
-                    "외부 이미지/링크는 넣지 마세요. 서명 라인은 템플릿에 있으므로 본문에 추가하지 마세요.");
+                    "외부 이미지/링크는 넣지 마세요. 서명 라인은 템플릿에 있으므로 본문에 추가하지 마세요."+
+                    "수신자 이름을 임의로 수정해서 부르지 마세요.");
 
             String body = "{"
                     + "\"model\":\"" + json(model) + "\"," 
