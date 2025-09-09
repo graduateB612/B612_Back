@@ -50,8 +50,8 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
 
             String system = (
                     "당신은 한국어 이메일 본문 HTML 스니펫을 작성하는 도우미입니다. " +
-                    "제약: 단락 수준 태그(<p>, <div>, <ul>, <li>, <em>, <strong>, <blockquote> 등)만 사용하세요. " +
-                    "<html>, <head>, <body>, <title> 등의 전체 문서 태그나 레이아웃은 포함하지 마세요. " +
+                    "제약: 태그는 사용하지 말고, 내용만 작성하세요." +
+                    "<html>, <head>, <body>, <title> 등의 전체 문서 태그나 레이아웃 또한한 포함하지 마세요. " +
                     "페르소나: B612 세계관의 NPC '" + npcName + "'을(를) 반영해 말투와 분위기를 유지하되, 동화속 등장 인물임을 잊지 마세요. " +
                     "캐릭터 페르소나 가이드:\n" + persona + "\n" +
                     "정화된 별의 주제: '" + purifiedTypeName + "'을(를) 과하지 않게 자연스럽게 녹여주세요. ");
@@ -61,7 +61,7 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
                     "NPC: " + safe(npcName) + "\n" +
                     "정화된 별 유형: " + safe(purifiedTypeName) + "\n" +
                     "사용자 고민: " + safe(concern) + "\n\n" +
-                    "전체 분량은 300자 이내로 작성, 단락은 3개를 넘지 않도록 해주세요.\n" +
+                    "전체 분량은 200자 이내로 작성, 단락은 3개를 넘지 않도록 해주세요.\n" +
                     "외부 이미지/링크는 넣지 마세요. 서명 라인은 템플릿에 있으므로 본문에 추가하지 마세요. 인삿말, 끝맺음 등은 이미 작성되어있으니, 사용자 고민에 대한 답변만 하세요.");
 
             String body = "{"
@@ -110,18 +110,18 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
     // 외부 의존성 없이 간단히 첫 번째 메시지 content 추출
     private String extractFirstMessageContent(String responseJson) {
         try {
-            // 패턴: "choices":[{"message":{"content":"..."}}] 에서 content 내용만 추출
             int idxChoices = responseJson.indexOf("\"choices\"");
             if (idxChoices < 0) return null;
-            int idxContent = responseJson.indexOf("\"content\"\\s*:\\s*\"", idxChoices);
-            if (idxContent < 0) idxContent = responseJson.indexOf("\"content\":\"", idxChoices);
-            if (idxContent < 0) return null;
-            int start = responseJson.indexOf('"', idxContent + "\"content\":\"".length());
-            if (start < 0) return null;
 
+            String anchor = "\"content\":\"";
+            int anchorIndex = responseJson.indexOf(anchor, idxChoices);
+            if (anchorIndex < 0) return null;
+
+            int i = anchorIndex + anchor.length();
             StringBuilder out = new StringBuilder();
             boolean escaped = false;
-            for (int i = start + 1; i < responseJson.length(); i++) {
+
+            for (; i < responseJson.length(); i++) {
                 char c = responseJson.charAt(i);
                 if (escaped) {
                     if (c == 'n') out.append('\n');
