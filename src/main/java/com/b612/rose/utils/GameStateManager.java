@@ -27,7 +27,6 @@ public class GameStateManager {
     private final CollectedStarRepository collectedStarRepository;
     private final InteractiveObjectRepository interactiveObjectRepository;
     private final UserInteractionRepository userInteractionRepository;
-    private final GameProgressRepository gameProgressRepository;
 
     private final CacheService cacheService;
     private final GameStageService gameStageService;
