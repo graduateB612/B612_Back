@@ -63,12 +63,10 @@ public class AiEmailGeneratorServiceImpl implements AiEmailGeneratorService {
                             "비유적·시적 표현은 꼭 필요할 때 한 번만 사용하세요. 일상적인 대화처럼 자연스럽게, 담백하게 작성하세요." +
                             "캐릭터 가이드에 있는 말투와 화법을 반드시 따르세요. 다른 스타일의 문체나 추상적인 조언은 쓰지 마세요."+
                             "철학적인 깨달음이나 추상적인 조언은 쓰지 마세요. npc가 직접 상황을 듣고 대화하듯이 반응하세요."
-                            //"정화된 별의 주제: '" + purifiedTypeName + "'을(를) 과하지 않게 자연스럽게 녹이되, 사용자의 고민에서 벗어난 답변을 하지 마세요."
             );
             String user = (
                     "수신자 이름: " + safe(userName) + "\n" +
                     "NPC: " + safe(npcName) + "\n" +
-                    "정화된 별 유형: " + safe(purifiedTypeName) + "\n" +
                     "사용자 고민: " + safe(concern) + "\n\n" +
                     "사용자 고민에 대한 답변을 작성하되, 전체 분량은 300자 이내로 작성, 단락은 3개를 넘지 않도록 해주세요.\n" +
                     "외부 이미지/링크는 넣지 마세요. 서명 라인은 템플릿에 있으므로 본문에 추가하지 마세요."+
