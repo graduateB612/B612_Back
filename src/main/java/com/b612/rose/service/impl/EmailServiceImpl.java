@@ -41,7 +41,12 @@ public class EmailServiceImpl implements EmailService {
         String npcName = request.getSelectedNpc();
         String senderEmail = emailTemplateManager.getSenderEmail(npcName);
 
-        EmailContentResult contentResult = emailTemplateManager.getRandomEmailContent(user, npcName);
+        // 요청으로 받은 고민을 우선 전달 (사용자가 최근 입력한 고민 반영)
+        String concern = request.getConcern() != null && !request.getConcern().isBlank()
+                ? request.getConcern()
+                : user.getConcern();
+
+        EmailContentResult contentResult = emailTemplateManager.getRandomEmailContent(user, npcName, concern);
         String subject = emailTemplateManager.getSubject(npcName, contentResult.getPurifiedTypeName());
         String content = contentResult.getContent();
 

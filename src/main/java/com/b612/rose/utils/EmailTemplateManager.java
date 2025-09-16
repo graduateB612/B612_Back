@@ -134,11 +134,16 @@ public class EmailTemplateManager {
 
         String purifiedTypeName = star.getPurifiedType().getDescription();
         String templatePath = npcTemplatePathMap.getOrDefault(npcName, "classpath:templates/emails/default-email.html");
-        return readAndFillTemplate(user, npcName, templatePath, purifiedTypeName);
+        return readAndFillTemplate(user, npcName, templatePath, purifiedTypeName, user.getConcern());
     }
 
     // 랜덤 템플릿 선택 방식
     public EmailContentResult getRandomEmailContent(User user, String npcName) {
+        return getRandomEmailContent(user, npcName, user.getConcern());
+    }
+
+    // 랜덤 템플릿 선택 방식 (요청의 고민 전달)
+    public EmailContentResult getRandomEmailContent(User user, String npcName, String concern) {
         List<String> candidates = npcTemplateCandidatesMap.get(npcName);
         String templatePath;
         if (candidates == null || candidates.isEmpty()) {
@@ -149,7 +154,7 @@ public class EmailTemplateManager {
         }
 
         String purifiedTypeName = templateTypeNameMap.getOrDefault(templatePath, "별");
-        String content = readAndFillTemplate(user, npcName, templatePath, purifiedTypeName);
+        String content = readAndFillTemplate(user, npcName, templatePath, purifiedTypeName, concern);
         String imagePath = templateStarImageMap.getOrDefault(templatePath, getStarImagePath(npcName));
         return EmailContentResult.builder()
                 .content(content)
@@ -158,7 +163,7 @@ public class EmailTemplateManager {
                 .build();
     }
 
-    private String readAndFillTemplate(User user, String npcName, String templatePath, String purifiedTypeName) {
+    private String readAndFillTemplate(User user, String npcName, String templatePath, String purifiedTypeName, String concern) {
         try {
             Resource resource = resourceLoader.getResource(templatePath);
             String template = Files.readString(Paths.get(resource.getURI()));
@@ -166,12 +171,12 @@ public class EmailTemplateManager {
             template = template.replace("{{userName}}", user.getUserName())
                     .replace("{{purifiedType}}", purifiedTypeName);
 
-            if (user.getConcern() != null && !user.getConcern().isEmpty()) {
-                template = template.replace("{{concern}}", user.getConcern());
+            if (concern != null && !concern.isEmpty()) {
+                template = template.replace("{{concern}}", concern);
             }
 
             String generated = aiEmailGeneratorService.isEnabled()
-                    ? aiEmailGeneratorService.generateNpcEmailHtml(npcName, user.getUserName(), purifiedTypeName, user.getConcern())
+                    ? aiEmailGeneratorService.generateNpcEmailHtml(npcName, user.getUserName(), purifiedTypeName, concern)
                     : null;
 
             if (generated != null && !generated.isBlank()) {
