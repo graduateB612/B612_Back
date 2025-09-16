@@ -56,6 +56,9 @@ public class EmailTemplateManager {
         npcImagePathMap.put("바오밥", "static/images/stars/BaobobStar.png");
 
         npcCharacterImageMap.put("여우", "static/images/character/fox_character.png");
+        npcCharacterImageMap.put("바오밥", "static/images/character/baobab_character.png");
+        npcCharacterImageMap.put("어린왕자", "static/images/character/prince_character.png");
+        npcCharacterImageMap.put("장미", "static/images/character/rose_character.png");
     }
 
     // 캐릭터 이름으로 보내는 사람 이메일 가져오기
