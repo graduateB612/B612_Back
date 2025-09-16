@@ -8,6 +8,7 @@ import lombok.Getter;
 public class EmailContentResult {
     private final String content;
     private final String purifiedTypeName;
+    private final String starImagePath;
 }
 
 

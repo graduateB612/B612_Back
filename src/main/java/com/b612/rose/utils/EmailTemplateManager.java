@@ -31,6 +31,7 @@ public class EmailTemplateManager {
     private final Map<String, List<String>> npcTemplateCandidatesMap = new HashMap<>();
     private final Map<String, String> templateTypeNameMap = new HashMap<>();
     private final Map<String, String> npcImagePathMap = new HashMap<>();
+    private final Map<String, String> templateStarImageMap = new HashMap<>();
     private final Map<String, String> npcCharacterImageMap = new HashMap<>();
 
     // npc별 이메일 데이터 초기화
@@ -88,6 +89,16 @@ public class EmailTemplateManager {
         npcCharacterImageMap.put("바오밥", "static/images/character/baobab_character.png");
         npcCharacterImageMap.put("어린왕자", "static/images/character/prince_character.png");
         npcCharacterImageMap.put("장미", "static/images/character/rose_character.png");
+
+        // 템플릿별 별 이미지 매핑
+        templateStarImageMap.put("classpath:templates/emails/little-prince-email.html", "static/images/stars/LittlePrinceStar.png");
+        templateStarImageMap.put("classpath:templates/emails/little-prince-email-explore.html", "static/images/stars/LittlePrinceStar_explore.png");
+        templateStarImageMap.put("classpath:templates/emails/rose-email.html", "static/images/stars/RoseStar.png");
+        templateStarImageMap.put("classpath:templates/emails/rose-email-insight.html", "static/images/stars/RoseStar_insight.png");
+        templateStarImageMap.put("classpath:templates/emails/fox-email.html", "static/images/stars/FoxStar.png");
+        templateStarImageMap.put("classpath:templates/emails/fox-email-longing.html", "static/images/stars/FoxStar_longing.png");
+        templateStarImageMap.put("classpath:templates/emails/baobab-email.html", "static/images/stars/BaobobStar.png");
+        templateStarImageMap.put("classpath:templates/emails/baobab-email-sacrifice.html", "static/images/stars/BaobobStar_sacrifice.png");
     }
 
     // 캐릭터 이름으로 보내는 사람 이메일 가져오기
@@ -139,9 +150,11 @@ public class EmailTemplateManager {
 
         String purifiedTypeName = templateTypeNameMap.getOrDefault(templatePath, "별");
         String content = readAndFillTemplate(user, npcName, templatePath, purifiedTypeName);
+        String imagePath = templateStarImageMap.getOrDefault(templatePath, getStarImagePath(npcName));
         return EmailContentResult.builder()
                 .content(content)
                 .purifiedTypeName(purifiedTypeName)
+                .starImagePath(imagePath)
                 .build();
     }
 
