@@ -5,8 +5,6 @@ import com.b612.rose.dto.response.UserResponse;
 import com.b612.rose.entity.domain.GameProgress;
 import com.b612.rose.entity.domain.User;
 import com.b612.rose.entity.enums.GameStage;
-import com.b612.rose.exception.BusinessException;
-import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.exception.ExceptionUtils;
 import com.b612.rose.mapper.GameProgressMapper;
 import com.b612.rose.mapper.UserMapper;

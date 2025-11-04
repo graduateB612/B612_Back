@@ -4,7 +4,6 @@ package com.b612.rose.service.impl;
 import com.b612.rose.dto.request.GameStageUpdateRequest;
 
 import com.b612.rose.dto.response.DialogueResponse;
-import com.b612.rose.dto.response.GameProgressResponse;
 import com.b612.rose.dto.response.GameStateResponse;
 import com.b612.rose.entity.domain.GameProgress;
 
@@ -15,12 +14,10 @@ import com.b612.rose.exception.ErrorCode;
 import com.b612.rose.exception.ExceptionUtils;
 import com.b612.rose.repository.GameProgressRepository;
 import com.b612.rose.service.service.*;
-import com.b612.rose.service.service.CacheService;
 import com.b612.rose.utils.GameStateManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -34,7 +31,6 @@ public class GameProgressServiceImpl implements GameProgressService {
     private final GameProgressRepository gameProgressRepository;
     private final DialogueService dialogueService;
     private final GameStateManager gameStateManager;
-    private final CacheService cacheService;
     private final AsyncTaskService asyncTaskService;
 
     // 게임 진척도 업데이트

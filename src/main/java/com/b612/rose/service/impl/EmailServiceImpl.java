@@ -1,15 +1,15 @@
 package com.b612.rose.service.impl;
 
 import com.b612.rose.dto.request.EmailRequest;
-import com.b612.rose.entity.domain.Star;
+// import removed
 import com.b612.rose.entity.domain.User;
-import com.b612.rose.entity.enums.StarType;
+// import removed
 import com.b612.rose.exception.BusinessException;
 import com.b612.rose.exception.ErrorCode;
-import com.b612.rose.repository.StarRepository;
 import com.b612.rose.repository.UserRepository;
 import com.b612.rose.service.service.EmailService;
 import com.b612.rose.utils.EmailTemplateManager;
+import com.b612.rose.utils.EmailContentResult;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,6 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
     private final UserRepository userRepository;
-    private final StarRepository starRepository;
     private final EmailTemplateManager emailTemplateManager;
 
     // 이메일 전송 처리
@@ -42,14 +41,14 @@ public class EmailServiceImpl implements EmailService {
         String npcName = request.getSelectedNpc();
         String senderEmail = emailTemplateManager.getSenderEmail(npcName);
 
-        StarType starType = emailTemplateManager.getStarTypeForNpc(npcName);
-        Star star = starRepository.findByStarType(starType)
-                .orElseThrow(() -> new BusinessException(ErrorCode.STAR_NOT_FOUND,
-                        "해당 별을 찾을 수 없습니다: " + starType));
+        // 요청으로 받은 고민을 우선 전달 (사용자가 최근 입력한 고민 반영)
+        String concern = request.getConcern() != null && !request.getConcern().isBlank()
+                ? request.getConcern()
+                : user.getConcern();
 
-        String purifiedTypeName = star.getPurifiedType().getDescription();
-        String subject = emailTemplateManager.getSubject(npcName, purifiedTypeName);
-        String content = emailTemplateManager.getEmailContent(user, npcName);
+        EmailContentResult contentResult = emailTemplateManager.getRandomEmailContent(user, npcName, concern);
+        String subject = emailTemplateManager.getSubject(npcName, contentResult.getPurifiedTypeName());
+        String content = contentResult.getContent();
 
         try {
             log.info("이메일 전송 시도: {} -> {}, 제목: {}", senderEmail, request.getEmail(), subject);
@@ -63,7 +62,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setSubject(subject);
             helper.setText(content, true);
 
-            String imagePath = emailTemplateManager.getStarImagePath(npcName);
+            String imagePath = contentResult.getStarImagePath();
             Resource imageResource = new ClassPathResource(imagePath);
             String characterPath = emailTemplateManager.getCharacterImagePath(npcName);
             Resource characterResource = new ClassPathResource(characterPath);
