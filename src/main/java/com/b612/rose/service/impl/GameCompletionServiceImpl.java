@@ -32,11 +32,11 @@ public class GameCompletionServiceImpl implements GameCompletionService {
     @Override
     @Transactional
     public GameStateResponse completeGameAndSendEmail(UUID userId, EmailRequest request) {
-        // 게임 완료 조건 검증
-        ExceptionUtils.validateAllStarsCompleted(
-                gameStateManager.areAllStarsCollectedAndDelivered(userId));
-        ExceptionUtils.validateEmailProvided(request.getEmail());
-        ExceptionUtils.validateNpcSelected(request.getSelectedNpc());
+//        // 게임 완료 조건 검증
+//        ExceptionUtils.validateAllStarsCompleted(
+//                gameStateManager.areAllStarsCollectedAndDelivered(userId));
+//        ExceptionUtils.validateEmailProvided(request.getEmail());
+//        ExceptionUtils.validateNpcSelected(request.getSelectedNpc());
 
         log.info("게임 완료 처리 - 사용자: {}, 이메일: {}, 선택한 NPC: {}",
                 userId, request.getEmail(), request.getSelectedNpc());
